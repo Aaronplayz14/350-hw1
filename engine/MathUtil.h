@@ -67,7 +67,7 @@ struct Point2D {
     static float Dot(Point2D a, Point2D b) {
         return a.x*b.x + a.y*b.y;
     }
-    static float Cross(Point2D a, Point2D b) { // TODO: Confirm as correct implementation
+    static float Cross(Point2D a, Point2D b) { 
         return a.x*b.y - a.y*b.x;
     }
     void Normalize() {
@@ -78,12 +78,10 @@ struct Point2D {
 };
 
 static std::ostream &operator<<(std::ostream &os, const Point2D &p) {
-    // TODO: write this code
     return os << "(" << p.x << ", " << p.y << ")";
 }
 
 static Point2D operator*(float number, const Point2D &rhs) {
-    // TODO: write this code
     return Point2D(number*rhs.x, number*rhs.y);
 }
 
@@ -93,22 +91,40 @@ struct Line {
     Line(Point2D p1 = {0, 0}, Point2D p2 = {0, 0}) : p1(p1), p2(p2) {}
     Line(float x1, float y1, float x2, float y2) : p1(x1, y1), p2(x2, y2) {}
     float Length() const {
-        // TODO: write this code
-        return 0;
+        return static_cast<float>(p1.Distance(p2));
     }
     Point2D ClosestPoint(const Point2D &p) const {
-        // TODO: write this code
-        return p;
+        Point2D ab = p2 - p1;
+        Point2D ac = p - p1;
+        Point2D bc = p - p2;
+
+        if (Point2D::Dot(ab, ac) <= 0) {
+            return p1;
+        } else if (Point2D::Dot(ab, bc) >= 0) {
+            return p2;
+        }
+
+        float x = Point2D::Dot(ab, ac) / this->Length();
+        return p1 + (ab * (this->Length() / x));
     }
     bool Crosses(Line other, Point2D &crossingPoint) const {
-        // TODO: write this code
-        return false;
+        Point2D ab = p2 - p1;
+        Point2D xy = other.p2 - other.p1;
+
+        float t = Point2D::Cross((other.p1 - p1), xy) / Point2D::Cross(ab, xy);
+        float u = Point2D::Cross((p1 - other.p1), ab) / Point2D::Cross(xy, ab);
+
+        if (p1 + (ab * t) == other.p1 + (xy * u)) {
+            crossingPoint = p1 + (ab * t);
+            return true;
+        } else {
+            return false;
+        }
     }
 };
 
 static std::ostream &operator<<(std::ostream &os, const Line &l) {
-    // TODO: write this code
-    return os;
+    return os << "(" << l.p1 << ", " << l.p2 << ")";
 }
 
 struct Circle {
