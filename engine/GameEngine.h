@@ -1,19 +1,17 @@
-
 #ifndef GAMEENGINE_H
 #define GAMEENGINE_H
 
-namespace CMPUT350 {
-class GameEngine;
-}
+#include <memory>
+#include <string>
+#include <vector>
 
 #include "EngineView.h"
+#include "GameContext.h"
 #include "GameObject.h"
-#include "MathUtil.h"
+
 #include <SFML/Graphics.hpp>
 
 namespace CMPUT350 {
-
-class DrawContext;
 
 class GameEngine : public EngineView {
 public:
@@ -30,8 +28,16 @@ public:
     void Run();
 
 private:
-    //	std::shared_ptr<sf::RenderWindow> mWindow;
-    //	std::shared_ptr<sf::Font> mFont;
+    std::shared_ptr<sf::RenderWindow> mWindow;
+    std::shared_ptr<sf::Font> mFont;
+    std::shared_ptr<DrawContext> mDrawContext;
+
+    // All objects active in the game, and any that were queued during a frame.
+    std::vector<std::shared_ptr<GameObject>> mGameObjects;
+    std::vector<std::shared_ptr<GameObject>> mObjectsToAdd;
+
+    // Context handed to every game object.
+    GameContext mGameContext;
 };
 
 }  // namespace CMPUT350

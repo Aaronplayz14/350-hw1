@@ -3,7 +3,6 @@
 
 #include "DrawContext.h"
 #include "EngineView.h"
-#include "GameObject.h"
 
 namespace CMPUT350 {
 
