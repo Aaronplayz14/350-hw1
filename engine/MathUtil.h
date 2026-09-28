@@ -10,82 +10,79 @@ struct Point2D {
     float x, y;
     Point2D(float x = 0, float y = 0) : x(x), y(y) {}
     double Distance(const Point2D &other) const {
-        // TODO: write this code
-        return 0;
+        float xDif = other.x - x;
+        float yDif = other.y - y;
+        double d = sqrt(xDif * xDif + yDif * yDif);
+        return d;
     }
     Point2D operator+(const Point2D &other) const {
-        // TODO: write this code
-        return *this;
+        return Point2D(x + other.x, y + other.y);
     }
     Point2D operator+(const float &other) const {
-        // TODO: write this code
-        return *this;
+        return Point2D(x + other, y + other);
     }
     Point2D operator-(const Point2D &other) const {
-        // TODO: write this code
-        return *this;
+        return Point2D(x - other.x, y - other.y);
     }
     Point2D operator-(const float &other) const {
-        // TODO: write this code
-        return *this;
+        return Point2D(x - other, y - other);
     }
     Point2D operator*(const float &scalar) const {
-        // TODO: write this code
-        return *this;
+        return Point2D(x * scalar, y * scalar);
     }
-    Point2D &operator+=(const float &scalar) {
-        // TODO: write this code
+    Point2D &operator+=(const float &scalar) { // TODO: Confirm correct interpretation of operation (Adding scalar???)
+        x += scalar;
+        y += scalar;
         return *this;
     }
     Point2D &operator+=(const Point2D &other) {
-        // TODO: write this code
+        x += other.x;
+        y += other.y;
         return *this;
     }
     Point2D &operator-=(const Point2D &other) {
-        // TODO: write this code
+        x -= other.x;
+        y -= other.y;
         return *this;
     }
     bool operator==(const Point2D &other) const {
-        // TODO: write this code
-        return false;
+        return x == other.x && y == other.y;
     }
     Point2D &operator*=(const int &scalar) {
-        // TODO: write this code
+        x *= scalar;
+        y *= scalar;
         return *this;
     }
-    Point2D &operator/=(const int &scalar) {
-        // TODO: write this code
+    Point2D &operator/=(const int &scalar) { // TODO: Error handling
+        x /= scalar;
+        y /= scalar;
         return *this;
     }
     float operator*(const Point2D &other) const {
-        // TODO: write this code
-        return 0;
+        return x*other.x + y*other.y;
     }
     float Dot(Point2D b) const {
-        // TODO: write this code
-        return 0;
+        return x*b.x + y*b.y;
     }
     static float Dot(Point2D a, Point2D b) {
-        // TODO: write this code
-        return 0;
+        return a.x*b.x + a.y*b.y;
     }
-    static float Cross(Point2D a, Point2D b) {
-        // TODO: write this code
-        return 0;
+    static float Cross(Point2D a, Point2D b) { 
+        return a.x*b.y - a.y*b.x;
     }
-    void Normalize() {
-        // TODO: write this code
+    void Normalize() { // TODO: Error handling
+        float mag = static_cast<float>(this->Distance(Point2D()));
+        x /= mag;
+        y /= mag;
     }
 };
 
 static std::ostream &operator<<(std::ostream &os, const Point2D &p) {
-    // TODO: write this code
-    return os;
+    return os << "(" << p.x << ", " << p.y << ")";
 }
 
 static Point2D operator*(float number, const Point2D &rhs) {
-    // TODO: write this code
-    return rhs;
+    return Point2D(number*rhs.x, number*rhs.y);
 }
 
 struct Line {
@@ -94,22 +91,40 @@ struct Line {
     Line(Point2D p1 = {0, 0}, Point2D p2 = {0, 0}) : p1(p1), p2(p2) {}
     Line(float x1, float y1, float x2, float y2) : p1(x1, y1), p2(x2, y2) {}
     float Length() const {
-        // TODO: write this code
-        return 0;
+        return static_cast<float>(p1.Distance(p2));
     }
     Point2D ClosestPoint(const Point2D &p) const {
-        // TODO: write this code
-        return p;
+        Point2D ab = p2 - p1;
+        Point2D ac = p - p1;
+        Point2D bc = p - p2;
+
+        if (Point2D::Dot(ab, ac) <= 0) {
+            return p1;
+        } else if (Point2D::Dot(ab, bc) >= 0) {
+            return p2;
+        }
+
+        float x = Point2D::Dot(ab, ac) / this->Length();
+        return p1 + (ab * (this->Length() / x));
     }
     bool Crosses(Line other, Point2D &crossingPoint) const {
-        // TODO: write this code
-        return false;
+        Point2D ab = p2 - p1;
+        Point2D xy = other.p2 - other.p1;
+
+        float t = Point2D::Cross((other.p1 - p1), xy) / Point2D::Cross(ab, xy);
+        float u = Point2D::Cross((p1 - other.p1), ab) / Point2D::Cross(xy, ab);
+
+        if (p1 + (ab * t) == other.p1 + (xy * u)) {
+            crossingPoint = p1 + (ab * t);
+            return true;
+        } else {
+            return false;
+        }
     }
 };
 
 static std::ostream &operator<<(std::ostream &os, const Line &l) {
-    // TODO: write this code
-    return os;
+    return os << "(" << l.p1 << ", " << l.p2 << ")";
 }
 
 struct Circle {
@@ -140,41 +155,88 @@ struct Rect {
         : topLeft(center.x - radius, center.y - radius), width(2 * radius), height(2 * radius) {}
 
     Rect &operator|=(const Rect &other) {
-        // TODO: write this code
+        float xMin, xMax, yMin, yMax;
+        xMin = std::min(topLeft.x, other.topLeft.x);
+        yMin = std::min(topLeft.y, other.topLeft.y);
+        xMax = std::max(topLeft.x + width, other.topLeft.x + other.width);
+        yMax = std::max(topLeft.y + height, other.topLeft.y + other.height);
+
+        topLeft.x = xMin;
+        topLeft.y = yMin;
+        width = xMax - xMin;
+        height = yMax - yMin;
+
         return *this;
     }
     Rect &operator|=(const Point2D &other) {
-        // TODO: write this code
+        float xMin, xMax, yMin, yMax;
+        xMin = std::min(topLeft.x, other.x);
+        yMin = std::min(topLeft.y, other.y);
+        xMax = std::max(topLeft.x + width, other.x);
+        yMax = std::max(topLeft.y + height, other.y);
+
+        topLeft.x = xMin;
+        topLeft.y = yMin;
+        width = xMax - xMin;
+        height = yMax - yMin;
         return *this;
     }
     Rect &operator|=(const Line &other) {
-        // TODO: write this code
+        float xMin, xMax, yMin, yMax;
+        xMin = std::min({topLeft.x, other.p1.x, other.p2.x});
+        yMin = std::min({topLeft.y, other.p1.y, other.p2.y});
+        xMax = std::max({topLeft.x + width, other.p1.x, other.p2.x});
+        yMax = std::max({topLeft.y + height, other.p1.y, other.p2.y});
+
+        topLeft.x = xMin;
+        topLeft.y = yMin;
+        width = xMax - xMin;
+        height = yMax - yMin;
         return *this;
     }
     Rect &operator&=(const Rect &other) {
-        // TODO: write this code
+        float xLB, xUB, yLB, yUB;
+        xLB = std::max(topLeft.x, other.topLeft.x);
+        yLB = std::max(topLeft.y, other.topLeft.y);
+        xUB = std::min(topLeft.x + width, other.topLeft.x + other.width);
+        yUB = std::min(topLeft.y + height, other.topLeft.y + other.height);
+
+        if (xLB <= xUB && yLB <= yUB) {
+            topLeft.x = xLB;
+            topLeft.y = yLB;
+            width = xUB - xLB;
+            height = yUB - yLB;
+        } else {
+            topLeft.x = NAN;
+            topLeft.y = NAN;
+            width = NAN;
+            height = NAN;
+        }
+
         return *this;
     }
     Rect &operator+=(const Point2D &other) {
-        // TODO: write this code
+        topLeft += other;
         return *this;
     }
     Rect operator+(const Point2D &other) const {
-        // TODO: write this code
-        return *this;
+        return Rect(topLeft + other, width, height);
     }
-    void Inset(int inset) {
-        // TODO: write this code
+    void Inset(float inset) { // TODO: Error handling
+        topLeft += inset;
+        width -= inset * 2;
+        height -= inset * 2;
     }
     bool IsInside(const Point2D &p) const {
-        // TODO: write this code
+        if (p.x >= topLeft.x && p.x <= topLeft.x + width && p.y >= topLeft.y && p.y <= topLeft.y + height) {
+            return true;
+        }
         return false;
     }
 };
 
 static std::ostream &operator<<(std::ostream &os, const Rect &l) {
-    // TODO: write this code
-    return os;
+    return os << "(" << l.topLeft << ", W: " << l.width << ", H: " << l.height << ")";
 }
 
 }  // namespace CMPUT350
