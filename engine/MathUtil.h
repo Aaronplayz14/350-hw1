@@ -105,7 +105,7 @@ struct Line {
         }
 
         float x = Point2D::Dot(ab, ac) / this->Length();
-        return p1 + (ab * (this->Length() / x));
+        return p1 + (ab * (x / this->Length()));
     }
     bool Crosses(Line other, Point2D &crossingPoint) const {
         Point2D ab = p2 - p1;
