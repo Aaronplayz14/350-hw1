@@ -53,7 +53,7 @@ struct Point2D {
         y *= scalar;
         return *this;
     }
-    Point2D &operator/=(const int &scalar) {
+    Point2D &operator/=(const int &scalar) { // TODO: Error handling
         x /= scalar;
         y /= scalar;
         return *this;
@@ -70,7 +70,7 @@ struct Point2D {
     static float Cross(Point2D a, Point2D b) { 
         return a.x*b.y - a.y*b.x;
     }
-    void Normalize() {
+    void Normalize() { // TODO: Error handling
         float mag = static_cast<float>(this->Distance(Point2D()));
         x /= mag;
         y /= mag;
@@ -155,34 +155,78 @@ struct Rect {
         : topLeft(center.x - radius, center.y - radius), width(2 * radius), height(2 * radius) {}
 
     Rect &operator|=(const Rect &other) {
-        // TODO: write this code
+        float xMin, xMax, yMin, yMax;
+        xMin = std::min(topLeft.x, other.topLeft.x);
+        yMin = std::min(topLeft.y, other.topLeft.y);
+        xMax = std::max(topLeft.x + width, other.topLeft.x + other.width);
+        yMax = std::max(topLeft.y + height, other.topLeft.y + other.height);
+
+        topLeft.x = xMin;
+        topLeft.y = yMin;
+        width = xMax - xMin;
+        height = yMax - yMin;
+
         return *this;
     }
     Rect &operator|=(const Point2D &other) {
-        // TODO: write this code
+        float xMin, xMax, yMin, yMax;
+        xMin = std::min(topLeft.x, other.x);
+        yMin = std::min(topLeft.y, other.y);
+        xMax = std::max(topLeft.x + width, other.x);
+        yMax = std::max(topLeft.y + height, other.y);
+
+        topLeft.x = xMin;
+        topLeft.y = yMin;
+        width = xMax - xMin;
+        height = yMax - yMin;
         return *this;
     }
     Rect &operator|=(const Line &other) {
-        // TODO: write this code
+        float xMin, xMax, yMin, yMax;
+        xMin = std::min({topLeft.x, other.p1.x, other.p2.x});
+        yMin = std::min({topLeft.y, other.p1.y, other.p2.y});
+        xMax = std::max({topLeft.x + width, other.p1.x, other.p2.x});
+        yMax = std::max({topLeft.y + height, other.p1.y, other.p2.y});
+
+        topLeft.x = xMin;
+        topLeft.y = yMin;
+        width = xMax - xMin;
+        height = yMax - yMin;
         return *this;
     }
     Rect &operator&=(const Rect &other) {
         // TODO: write this code
+        float xLB, xUB, yLB, yUB;
+        xLB = std::max(topLeft.x, other.topLeft.x);
+        yLB = std::max(topLeft.y, other.topLeft.y);
+        xUB = std::min(topLeft.x + width, other.topLeft.x + other.width);
+        yUB = std::min(topLeft.y + height, other.topLeft.y + other.height);
+
+        if (xLB < xUB && yLB < yUB) {
+            topLeft.x = xLB;
+            topLeft.y = yLB;
+            width = xUB - xLB;
+            height = yUB - yLB;
+        }
+
         return *this;
     }
     Rect &operator+=(const Point2D &other) {
-        // TODO: write this code
+        topLeft += other;
         return *this;
     }
     Rect operator+(const Point2D &other) const {
-        // TODO: write this code
-        return *this;
+        return Rect(topLeft + other, width, height);
     }
-    void Inset(int inset) {
-        // TODO: write this code
+    void Inset(float inset) { // TODO: Error handling
+        topLeft += inset;
+        width -= inset * 2;
+        height -= inset * 2;
     }
     bool IsInside(const Point2D &p) const {
-        // TODO: write this code
+        if (p.x >= topLeft.x && p.x <= topLeft.x + width && p.y >= topLeft.y && p.y <= topLeft.y + height) {
+            return true;
+        }
         return false;
     }
 };
