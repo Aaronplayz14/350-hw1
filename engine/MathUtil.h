@@ -195,18 +195,22 @@ struct Rect {
         return *this;
     }
     Rect &operator&=(const Rect &other) {
-        // TODO: write this code
         float xLB, xUB, yLB, yUB;
         xLB = std::max(topLeft.x, other.topLeft.x);
         yLB = std::max(topLeft.y, other.topLeft.y);
         xUB = std::min(topLeft.x + width, other.topLeft.x + other.width);
         yUB = std::min(topLeft.y + height, other.topLeft.y + other.height);
 
-        if (xLB < xUB && yLB < yUB) {
+        if (xLB <= xUB && yLB <= yUB) {
             topLeft.x = xLB;
             topLeft.y = yLB;
             width = xUB - xLB;
             height = yUB - yLB;
+        } else {
+            topLeft.x = NAN;
+            topLeft.y = NAN;
+            width = NAN;
+            height = NAN;
         }
 
         return *this;
@@ -232,8 +236,7 @@ struct Rect {
 };
 
 static std::ostream &operator<<(std::ostream &os, const Rect &l) {
-    // TODO: write this code
-    return os;
+    return os << "(" << l.topLeft << ", W: " << l.width << ", H: " << l.height << ")";
 }
 
 }  // namespace CMPUT350
