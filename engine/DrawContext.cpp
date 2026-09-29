@@ -7,7 +7,7 @@ namespace CMPUT350 {
 DrawContext::DrawContext(std::shared_ptr<sf::RenderWindow> window, std::shared_ptr<sf::Font> font)
     : mWindow(window), mFont(font) {}
 
-void DrawContext::DrawText(const std::string& text, int pixelSize, Point2D p, RGBColor c)
+void DrawContext::DrawText(const std::string&text, int pixelSize, Point2D p, RGBColor c)
 {
     sf::Text label(*mFont, text, static_cast<unsigned int>(pixelSize));
     label.setFillColor(sf::Color(c.r, c.g, c.b));
