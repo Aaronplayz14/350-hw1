@@ -5,6 +5,7 @@
 #include "DrawContext.h"
 #include "FontData.h"
 #include "GraphicsObject.h"
+#include "CollisionObject.h"
 
 namespace CMPUT350 {
 
@@ -93,6 +94,31 @@ void GameEngine::Run()
             object->Update(&mGameContext);
 
         // 4. Detect collisions.
+        for (std::size_t i = 0; i < mGameObjects.size() - 1; ++i)
+        {
+            std::shared_ptr<CollisionObject> objI = std::dynamic_pointer_cast<CollisionObject>(mGameObjects[i]);
+            if (objI == nullptr)
+                continue; // Not a collision object, skip
+
+            for (std::size_t j = 1; i + j < mGameObjects.size(); ++j)
+            {
+                std::shared_ptr<CollisionObject> objIJ = std::dynamic_pointer_cast<CollisionObject>(mGameObjects[i + j]);
+                if (objIJ == nullptr)
+                    continue; // Not a collision object, skip
+
+                static CMPUT350::Rect boundsI({0, 0}, 0, 0);
+                static CMPUT350::Rect boundsIJ({0, 0}, 0, 0);
+                boundsI = objI->GetBounds();
+                boundsIJ = objIJ->GetBounds();
+
+                boundsI &= boundsIJ;
+                if(!std::isnan(boundsI.width))
+                {
+                    objI->CollisionEnter(objIJ);
+                    objIJ->CollisionEnter(objI);
+                }
+            }
+        }
 
         // 5. Post-collision updates.
         for (auto& object : mGameObjects)
