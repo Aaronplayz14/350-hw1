@@ -48,12 +48,12 @@ struct Point2D {
     bool operator==(const Point2D &other) const {
         return x == other.x && y == other.y;
     }
-    Point2D &operator*=(const int &scalar) {
+    Point2D &operator*=(const float &scalar) {
         x *= scalar;
         y *= scalar;
         return *this;
     }
-    Point2D &operator/=(const int &scalar) { // TODO: Error handling
+    Point2D &operator/=(const float &scalar) { // TODO: Error handling
         x /= scalar;
         y /= scalar;
         return *this;
@@ -140,7 +140,7 @@ struct Rect {
     Point2D topLeft;
     float width, height;
 
-    Rect(float left, float top, float width, float height)
+    Rect(float top, float left, float width, float height)
         : topLeft(Point2D(top, left)), width(width), height(height) {}
 
     Rect(Point2D tl = {0, 0}, int w = 0, int h = 0) : topLeft(tl), width(w), height(h) {}
