@@ -37,11 +37,11 @@ bool Player::HandleKeyEvent(CMPUT350::GameContext* context, char key)
 
     if(key == ' '){
         if(b1.expired()){
-            auto sharedBullet = std::make_shared<Bullet>(CMPUT350::Point2D(mLoc), CMPUT350::Point2D(0.0f, -20.0f), true);
+            auto sharedBullet = std::make_shared<Bullet>(CMPUT350::Point2D(mLoc), CMPUT350::Point2D(0.0f, -40.0f), true);
             b1 = sharedBullet;
             context->mEngineView->AddGameObject(sharedBullet);
         } else if (b2.expired()){
-            auto sharedBullet = std::make_shared<Bullet>(CMPUT350::Point2D(mLoc), CMPUT350::Point2D(0.0f, -20.0f), true);
+            auto sharedBullet = std::make_shared<Bullet>(CMPUT350::Point2D(mLoc), CMPUT350::Point2D(0.0f, -40.0f), true);
             b2 = sharedBullet;
             context->mEngineView->AddGameObject(sharedBullet);
         }
@@ -56,7 +56,16 @@ void Player::RenderBackground(CMPUT350::GameContext* context)
 
 void Player::RenderForeground(CMPUT350::GameContext* context)
 {
-    context->ScreenContext->DrawRect(mBounds, CMPUT350::Colors::blue);
+    context->ScreenContext->DrawRect(CMPUT350::Rect(mLoc + CMPUT350::Point2D(-5.0f, -15.0f), 10.0f, 20.0f), CMPUT350::Colors::white);
+    context->ScreenContext->DrawRect(CMPUT350::Rect(mLoc + CMPUT350::Point2D(-10.0f, -5.0f), 5.0f, 15.0f), CMPUT350::Colors::white);
+    context->ScreenContext->DrawRect(CMPUT350::Rect(mLoc + CMPUT350::Point2D(5.0f, -5.0f), 5.0f, 15.0f), CMPUT350::Colors::white);
+    context->ScreenContext->DrawRect(CMPUT350::Rect(mLoc + CMPUT350::Point2D(-15.0f, 10.0f), 30.0f, 10.0f), CMPUT350::Colors::white);
+    context->ScreenContext->DrawRect(CMPUT350::Rect(mLoc + CMPUT350::Point2D(-20.0f, 5.0f), 5.0f, 10.0f), CMPUT350::Colors::white);
+    context->ScreenContext->DrawRect(CMPUT350::Rect(mLoc + CMPUT350::Point2D(15.0f, 5.0f), 5.0f, 10.0f), CMPUT350::Colors::white);
+    context->ScreenContext->DrawRect(CMPUT350::Rect(mLoc + CMPUT350::Point2D(-20.0f, 0.0f), 5.0f, 5.0f), CMPUT350::Colors::red);
+    context->ScreenContext->DrawRect(CMPUT350::Rect(mLoc + CMPUT350::Point2D(15.0f, 0.0f), 5.0f, 5.0f), CMPUT350::Colors::red);
+    context->ScreenContext->DrawRect(CMPUT350::Rect(mLoc + CMPUT350::Point2D(-5.0f, -20.0f), 10.0f, 5.0f), CMPUT350::Colors::red);
+    context->ScreenContext->DrawRect(CMPUT350::Rect(mLoc + CMPUT350::Point2D(-5.0f, 5.0f), 10.0f, 5.0f), CMPUT350::Colors::blue);
 }
 
 void Player::CollisionEnter(const std::shared_ptr<CMPUT350::CollisionObject>& obj)
