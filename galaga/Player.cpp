@@ -34,6 +34,19 @@ bool Player::HandleKeyEvent(CMPUT350::GameContext* context, char key)
             mBounds.topLeft.x += mSpeed;
         }
     }
+
+    if(key == ' '){
+        if(b1.expired()){
+            auto sharedBullet = std::make_shared<Bullet>(CMPUT350::Point2D(mLoc), CMPUT350::Point2D(0.0f, -20.0f), true);
+            b1 = sharedBullet;
+            context->mEngineView->AddGameObject(sharedBullet);
+        } else if (b2.expired()){
+            auto sharedBullet = std::make_shared<Bullet>(CMPUT350::Point2D(mLoc), CMPUT350::Point2D(0.0f, -20.0f), true);
+            b2 = sharedBullet;
+            context->mEngineView->AddGameObject(sharedBullet);
+        }
+    }
+
     return false;
 }
 
