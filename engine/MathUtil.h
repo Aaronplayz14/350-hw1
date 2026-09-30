@@ -30,7 +30,7 @@ struct Point2D {
     Point2D operator*(const float &scalar) const {
         return Point2D(x * scalar, y * scalar);
     }
-    Point2D &operator+=(const float &scalar) { // TODO: Confirm correct interpretation of operation (Adding scalar???)
+    Point2D &operator+=(const float &scalar) {
         x += scalar;
         y += scalar;
         return *this;
@@ -53,9 +53,16 @@ struct Point2D {
         y *= scalar;
         return *this;
     }
-    Point2D &operator/=(const float &scalar) { // TODO: Error handling
-        x /= scalar;
-        y /= scalar;
+    Point2D &operator/=(const float &scalar) {
+        if(scalar == 0){
+            std::cerr << "WARNING: Cannot divide by 0, setting Point2D to origin\n";
+            x = 0;
+            y = 0;
+        } else {
+            x /= scalar;
+            y /= scalar;
+        }
+        
         return *this;
     }
     float operator*(const Point2D &other) const {
@@ -70,10 +77,16 @@ struct Point2D {
     static float Cross(Point2D a, Point2D b) { 
         return a.x*b.y - a.y*b.x;
     }
-    void Normalize() { // TODO: Error handling
+    void Normalize() {
         float mag = static_cast<float>(this->Distance(Point2D()));
-        x /= mag;
-        y /= mag;
+        if (mag == 0){
+            std::cerr << "WARNING: Point2D at origin, cannot normalize\n";
+            x = 0;
+            y = 0;
+        } else {
+            x /= mag;
+            y /= mag;
+        }
     }
 };
 
@@ -111,10 +124,14 @@ struct Line {
         Point2D ab = p2 - p1;
         Point2D xy = other.p2 - other.p1;
 
+        if(Point2D::Cross(ab, xy) == 0 || Point2D::Cross(xy, ab) == 0){
+            return false;
+        }
+
         float t = Point2D::Cross((other.p1 - p1), xy) / Point2D::Cross(ab, xy);
         float u = Point2D::Cross((p1 - other.p1), ab) / Point2D::Cross(xy, ab);
 
-        if (p1 + (ab * t) == other.p1 + (xy * u)) {
+        if (t >= 0 && t<= 1 && u >= 0 && u <= 1) {
             crossingPoint = p1 + (ab * t);
             return true;
         } else {
@@ -222,10 +239,12 @@ struct Rect {
     Rect operator+(const Point2D &other) const {
         return Rect(topLeft + other, width, height);
     }
-    void Inset(float inset) { // TODO: Error handling
-        topLeft += inset;
-        width -= inset * 2;
-        height -= inset * 2;
+    void Inset(float inset) {
+        float newWidth = std::max(width - inset * 2, 0.0f);
+        float newHeight = std::max(height - inset * 2, 0.0f);
+        topLeft += Point2D((width - newWidth) / 2, (height - newHeight) / 2);
+        width = newWidth;
+        height = newHeight;
     }
     bool IsInside(const Point2D &p) const {
         if (p.x >= topLeft.x && p.x <= topLeft.x + width && p.y >= topLeft.y && p.y <= topLeft.y + height) {
