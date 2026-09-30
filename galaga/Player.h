@@ -14,6 +14,11 @@ public:
     void Update(CMPUT350::GameContext* context) override;
     void LateUpdate(CMPUT350::GameContext* context) override;
     bool HandleKeyEvent(CMPUT350::GameContext* context, char key) override;
+
+    // Arrow keys arrive here instead of as text, so held keys can be polled
+    // every frame rather than moved one press at a time.
+    void HandleKeyState(CMPUT350::GameContext* context, char key, bool pressed) override;
+
     bool IsAlive() const override;
     void Kill() override;
 
@@ -31,6 +36,11 @@ private:
     CMPUT350::Rect mBounds;
     bool mAlive;
     float mSpeed;
+    bool mMoveLeft;
+    bool mMoveRight;
+
+    // Weak on purpose: the engine owns the bullets, and an expired slot is
+    // what tells us we are allowed to fire again.
     std::weak_ptr<Bullet> b1, b2;
 };
 

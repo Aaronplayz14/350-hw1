@@ -1,4 +1,5 @@
 #include <random>
+#include <string>
 #include "GameEngine.h"
 #include "Player.h"
 #include "Enemy.h"
@@ -41,7 +42,7 @@ public:
         if (mNumCollisions % 10 == 8)
         {
             std::uniform_int_distribution<int> size(50, 150);
-            context->mEngineView->AddGameObject(std::make_shared<Ball>(size(gen)));
+            context->EngineContext->AddGameObject(std::make_shared<Ball>(size(gen)));
             mNumCollisions++;
         }
         mSpeedNext = mSpeed;
@@ -111,9 +112,11 @@ private:
 std::random_device Ball::rd;
 std::mt19937 Ball::gen(rd());
 
-int main()
+int main(int argc, char* argv[])
 {
-    bool mBallSsample = false;
+    // Run as "./Project1 ball" for the bouncing ball sample, "./Project1 galaga"
+    // (or no argument) for the game. Both need to be runnable for marking.
+    bool mBallSsample = (argc > 1 && std::string(argv[1]) == "ball");
 
     if (mBallSsample)
     {

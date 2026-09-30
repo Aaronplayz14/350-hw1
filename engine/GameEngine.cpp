@@ -8,10 +8,33 @@
 #include "CollisionObject.h"
 
 namespace CMPUT350 {
+namespace {
+
+// The engine only cares about left/right, so arrow keys collapse onto the
+// same chars the game already used. '\0' means "not a movement key".
+char GetMovementKey(sf::Keyboard::Key key)
+{
+    switch (key)
+    {
+        case sf::Keyboard::Key::A:
+        case sf::Keyboard::Key::Left:
+            return 'a';
+        case sf::Keyboard::Key::D:
+        case sf::Keyboard::Key::Right:
+            return 'd';
+        default:
+            return '\0';
+    }
+}
+
+}  // namespace
 
 GameEngine::GameEngine(unsigned int width, unsigned int height, const std::string& name)
 {
     mWindow = std::make_shared<sf::RenderWindow>(sf::VideoMode({width, height}), name);
+
+    // Key repeat would fire HandleKeyState every few ms instead of once.
+    mWindow->setKeyRepeatEnabled(false);
 
     // The assignment caps the engine at 30 fps.
     mWindow->setFramerateLimit(30);
@@ -24,7 +47,7 @@ GameEngine::GameEngine(unsigned int width, unsigned int height, const std::strin
     mDrawContext = std::make_shared<DrawContext>(mWindow, mFont);
 
     // Point game objects back at the engine they belong to.
-    mGameContext.mEngineView = this;
+    mGameContext.EngineContext = this;
     mGameContext.ScreenContext = mDrawContext.get();
 }
 
@@ -69,15 +92,33 @@ void GameEngine::Run()
         // 2. Window and keyboard events.
         while (const auto event = mWindow->pollEvent())
         {
-            // Window close button.
             if (event->is<sf::Event::Closed>())
             {
                 mWindow->close();
                 break;
             }
 
-            // We only care about the low-order ASCII characters.
-            if (const auto* text = event->getIf<sf::Event::TextEntered>())
+            // Held keys go through HandleKeyState so objects can poll them;
+            // HandleKeyEvent stays for one-shot presses like firing.
+            if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>())
+            {
+                const char movementKey = GetMovementKey(keyPressed->code);
+                if (movementKey != '\0')
+                {
+                    for (auto& object : mGameObjects)
+                        object->HandleKeyState(&mGameContext, movementKey, true);
+                }
+            }
+            else if (const auto* keyReleased = event->getIf<sf::Event::KeyReleased>())
+            {
+                const char movementKey = GetMovementKey(keyReleased->code);
+                if (movementKey != '\0')
+                {
+                    for (auto& object : mGameObjects)
+                        object->HandleKeyState(&mGameContext, movementKey, false);
+                }
+            }
+            else if (const auto* text = event->getIf<sf::Event::TextEntered>())
             {
                 if (text->unicode <= 127)
                 {
@@ -94,25 +135,25 @@ void GameEngine::Run()
             object->Update(&mGameContext);
 
         // 4. Detect collisions.
-        for (std::size_t i = 0; i < mGameObjects.size() - 1; ++i)
+        for (std::size_t i = 0; i + 1 < mGameObjects.size(); ++i)
         {
             std::shared_ptr<CollisionObject> objI = std::dynamic_pointer_cast<CollisionObject>(mGameObjects[i]);
             if (objI == nullptr)
                 continue;
 
-            for (std::size_t j = 1; i + j < mGameObjects.size(); ++j)
+            for (std::size_t j = i + 1; j < mGameObjects.size(); ++j)
             {
-                std::shared_ptr<CollisionObject> objIJ = std::dynamic_pointer_cast<CollisionObject>(mGameObjects[i + j]);
+                std::shared_ptr<CollisionObject> objIJ = std::dynamic_pointer_cast<CollisionObject>(mGameObjects[j]);
                 if (objIJ == nullptr)
                     continue;
 
-                static CMPUT350::Rect boundsI({0, 0}, 0, 0);
-                static CMPUT350::Rect boundsIJ({0, 0}, 0, 0);
-                boundsI = objI->GetBounds();
-                boundsIJ = objIJ->GetBounds();
+                CMPUT350::Rect boundsI = objI->GetBounds();
+                CMPUT350::Rect boundsIJ = objIJ->GetBounds();
 
+                // Rect::operator&= leaves width as NaN when the boxes miss,
+                // so a real number here means they overlap.
                 boundsI &= boundsIJ;
-                if(!std::isnan(boundsI.width))
+                if (!std::isnan(boundsI.width))
                 {
                     objI->CollisionEnter(objIJ);
                     objIJ->CollisionEnter(objI);
