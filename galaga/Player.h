@@ -2,6 +2,7 @@
 #define PLAYER_H
 
 #include "CollisionObject.h"
+#include "Bullet.h"
 
 class Player : public CMPUT350::CollisionObject
 {
@@ -30,6 +31,7 @@ private:
     CMPUT350::Rect mBounds;
     bool mAlive;
     float mSpeed;
+    std::weak_ptr<Bullet> b1, b2;
 };
 
 #endif

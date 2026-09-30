@@ -58,7 +58,7 @@ void Bullet::CollisionEnter(const std::shared_ptr<CMPUT350::CollisionObject>& ob
 
     if (enemy != nullptr && mPlayer)
     {
-        Kill();
+        this->Kill();
     }
 }
 
