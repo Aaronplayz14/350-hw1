@@ -98,13 +98,13 @@ void GameEngine::Run()
         {
             std::shared_ptr<CollisionObject> objI = std::dynamic_pointer_cast<CollisionObject>(mGameObjects[i]);
             if (objI == nullptr)
-                continue; // Not a collision object, skip
+                continue;
 
             for (std::size_t j = 1; i + j < mGameObjects.size(); ++j)
             {
                 std::shared_ptr<CollisionObject> objIJ = std::dynamic_pointer_cast<CollisionObject>(mGameObjects[i + j]);
                 if (objIJ == nullptr)
-                    continue; // Not a collision object, skip
+                    continue;
 
                 static CMPUT350::Rect boundsI({0, 0}, 0, 0);
                 static CMPUT350::Rect boundsIJ({0, 0}, 0, 0);
