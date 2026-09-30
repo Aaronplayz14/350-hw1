@@ -113,7 +113,7 @@ std::mt19937 Ball::gen(rd());
 
 int main()
 {
-    bool mBallSsample = true;
+    bool mBallSsample = false;
 
     if (mBallSsample)
     {
@@ -130,7 +130,7 @@ int main()
         engine.AddGameObject(std::make_shared<Stars>(250, CMPUT350::Rect(0, 0, 768, 1024)));
         for (int x = 0; x < 4; x++)
         {
-            auto enemy = std::make_shared<Enemy>(CMPUT350::Point2D(100 + x * 200, 100));
+            auto enemy = std::make_shared<Enemy>(CMPUT350::Point2D(84 + x * 200, 100));
             engine.AddGameObject(enemy);
         }
         engine.Run();

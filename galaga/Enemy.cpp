@@ -1,7 +1,7 @@
 #include "Enemy.h"
 #include "Bullet.h"
 
-Enemy::Enemy(CMPUT350::Point2D loc):mLoc(loc), mBounds(loc, 20.0f), mAlive(true)
+Enemy::Enemy(CMPUT350::Point2D loc):mLoc(loc), mBounds(loc - 15.0f, 30.0f, 30.0f), mAlive(true)
 {
 }
 
