@@ -1,0 +1,8 @@
+/cshome/achiu3/Documents/Cmput 350/350-hw1/build-linux/CMakeFiles/rebuild_cache.dir
+/cshome/achiu3/Documents/Cmput 350/350-hw1/build-linux/CMakeFiles/edit_cache.dir
+/cshome/achiu3/Documents/Cmput 350/350-hw1/build-linux/CMakeFiles/Project1.dir
+/cshome/achiu3/Documents/Cmput 350/350-hw1/build-linux/engine/CMakeFiles/rebuild_cache.dir
+/cshome/achiu3/Documents/Cmput 350/350-hw1/build-linux/engine/CMakeFiles/edit_cache.dir
+/cshome/achiu3/Documents/Cmput 350/350-hw1/build-linux/engine/CMakeFiles/Engine.dir
+/cshome/achiu3/Documents/Cmput 350/350-hw1/build-linux/galaga/CMakeFiles/rebuild_cache.dir
+/cshome/achiu3/Documents/Cmput 350/350-hw1/build-linux/galaga/CMakeFiles/edit_cache.dir
