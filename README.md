@@ -3,4 +3,4 @@
 
 ## AI assistance
 
-We wrote the project code ourselves. We used AI assistance to add documentation comments, fix player moements, basic engine code support and double-check the code for correctness after writing it.
+AI generated code was used for the framework of the engine loop and parts of the player movement system. AI was also used to create documenton/comments and to check code for unforseen errors/bugs. 
