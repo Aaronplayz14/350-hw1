@@ -203,10 +203,10 @@ struct Rect {
     }
     Rect &operator|=(const Line &other) {
         float xMin, xMax, yMin, yMax;
-        xMin = std::min({topLeft.x, other.p1.x, other.p2.x});
-        yMin = std::min({topLeft.y, other.p1.y, other.p2.y});
-        xMax = std::max({topLeft.x + width, other.p1.x, other.p2.x});
-        yMax = std::max({topLeft.y + height, other.p1.y, other.p2.y});
+        xMin = std::min(std::min(topLeft.x, other.p1.x), other.p2.x);
+        yMin = std::min(std::min(topLeft.y, other.p1.y), other.p2.y);
+        xMax = std::max(std::max(topLeft.x + width, other.p1.x), other.p2.x);
+        yMax = std::max(std::max(topLeft.y + height, other.p1.y), other.p2.y);
 
         topLeft.x = xMin;
         topLeft.y = yMin;

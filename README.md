@@ -3,4 +3,4 @@
 
 ## AI assistance
 
-We wrote the project code ourselves. We used AI assistance to add documentation comments, and double-check the code for correctness after writing it.
+We wrote the project code ourselves. We used AI assistance to add documentation comments, fix player moements, basic engine code support and double-check the code for correctness after writing it.

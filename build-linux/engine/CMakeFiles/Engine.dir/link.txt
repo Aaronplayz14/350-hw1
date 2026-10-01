@@ -1,0 +1,2 @@
+/usr/bin/ar qc libEngine.a  CMakeFiles/Engine.dir/DrawContext.cpp.o CMakeFiles/Engine.dir/GameEngine.cpp.o CMakeFiles/Engine.dir/GameObject.cpp.o CMakeFiles/Engine.dir/GraphicsObject.cpp.o
+/usr/bin/ranlib libEngine.a

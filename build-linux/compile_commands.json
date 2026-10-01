@@ -1,0 +1,47 @@
+[
+{
+  "directory": "/cshome/achiu3/Documents/Cmput 350/350-hw1/build-linux",
+  "command": "/usr/bin/c++   -I\"/cshome/achiu3/Documents/Cmput 350/350-hw1/engine\" -I\"/cshome/achiu3/Documents/Cmput 350/350-hw1/galaga\" -isystem \"/cshome/achiu3/Documents/Cmput 350/350-hw1/cmake/../extern/sfml-3.1.0-linux-x86_64-ubuntu20.04/include\"  -g   -std=c++2a -o CMakeFiles/Project1.dir/galaga/Bullet.cpp.o -c \"/cshome/achiu3/Documents/Cmput 350/350-hw1/galaga/Bullet.cpp\"",
+  "file": "/cshome/achiu3/Documents/Cmput 350/350-hw1/galaga/Bullet.cpp"
+},
+{
+  "directory": "/cshome/achiu3/Documents/Cmput 350/350-hw1/build-linux",
+  "command": "/usr/bin/c++   -I\"/cshome/achiu3/Documents/Cmput 350/350-hw1/engine\" -I\"/cshome/achiu3/Documents/Cmput 350/350-hw1/galaga\" -isystem \"/cshome/achiu3/Documents/Cmput 350/350-hw1/cmake/../extern/sfml-3.1.0-linux-x86_64-ubuntu20.04/include\"  -g   -std=c++2a -o CMakeFiles/Project1.dir/galaga/Enemy.cpp.o -c \"/cshome/achiu3/Documents/Cmput 350/350-hw1/galaga/Enemy.cpp\"",
+  "file": "/cshome/achiu3/Documents/Cmput 350/350-hw1/galaga/Enemy.cpp"
+},
+{
+  "directory": "/cshome/achiu3/Documents/Cmput 350/350-hw1/build-linux",
+  "command": "/usr/bin/c++   -I\"/cshome/achiu3/Documents/Cmput 350/350-hw1/engine\" -I\"/cshome/achiu3/Documents/Cmput 350/350-hw1/galaga\" -isystem \"/cshome/achiu3/Documents/Cmput 350/350-hw1/cmake/../extern/sfml-3.1.0-linux-x86_64-ubuntu20.04/include\"  -g   -std=c++2a -o CMakeFiles/Project1.dir/galaga/Player.cpp.o -c \"/cshome/achiu3/Documents/Cmput 350/350-hw1/galaga/Player.cpp\"",
+  "file": "/cshome/achiu3/Documents/Cmput 350/350-hw1/galaga/Player.cpp"
+},
+{
+  "directory": "/cshome/achiu3/Documents/Cmput 350/350-hw1/build-linux",
+  "command": "/usr/bin/c++   -I\"/cshome/achiu3/Documents/Cmput 350/350-hw1/engine\" -I\"/cshome/achiu3/Documents/Cmput 350/350-hw1/galaga\" -isystem \"/cshome/achiu3/Documents/Cmput 350/350-hw1/cmake/../extern/sfml-3.1.0-linux-x86_64-ubuntu20.04/include\"  -g   -std=c++2a -o CMakeFiles/Project1.dir/galaga/Stars.cpp.o -c \"/cshome/achiu3/Documents/Cmput 350/350-hw1/galaga/Stars.cpp\"",
+  "file": "/cshome/achiu3/Documents/Cmput 350/350-hw1/galaga/Stars.cpp"
+},
+{
+  "directory": "/cshome/achiu3/Documents/Cmput 350/350-hw1/build-linux",
+  "command": "/usr/bin/c++   -I\"/cshome/achiu3/Documents/Cmput 350/350-hw1/engine\" -I\"/cshome/achiu3/Documents/Cmput 350/350-hw1/galaga\" -isystem \"/cshome/achiu3/Documents/Cmput 350/350-hw1/cmake/../extern/sfml-3.1.0-linux-x86_64-ubuntu20.04/include\"  -g   -std=c++2a -o CMakeFiles/Project1.dir/galaga/main.cpp.o -c \"/cshome/achiu3/Documents/Cmput 350/350-hw1/galaga/main.cpp\"",
+  "file": "/cshome/achiu3/Documents/Cmput 350/350-hw1/galaga/main.cpp"
+},
+{
+  "directory": "/cshome/achiu3/Documents/Cmput 350/350-hw1/build-linux/engine",
+  "command": "/usr/bin/c++   -isystem \"/cshome/achiu3/Documents/Cmput 350/350-hw1/cmake/../extern/sfml-3.1.0-linux-x86_64-ubuntu20.04/include\"  -g   -std=c++2a -o CMakeFiles/Engine.dir/DrawContext.cpp.o -c \"/cshome/achiu3/Documents/Cmput 350/350-hw1/engine/DrawContext.cpp\"",
+  "file": "/cshome/achiu3/Documents/Cmput 350/350-hw1/engine/DrawContext.cpp"
+},
+{
+  "directory": "/cshome/achiu3/Documents/Cmput 350/350-hw1/build-linux/engine",
+  "command": "/usr/bin/c++   -isystem \"/cshome/achiu3/Documents/Cmput 350/350-hw1/cmake/../extern/sfml-3.1.0-linux-x86_64-ubuntu20.04/include\"  -g   -std=c++2a -o CMakeFiles/Engine.dir/GameEngine.cpp.o -c \"/cshome/achiu3/Documents/Cmput 350/350-hw1/engine/GameEngine.cpp\"",
+  "file": "/cshome/achiu3/Documents/Cmput 350/350-hw1/engine/GameEngine.cpp"
+},
+{
+  "directory": "/cshome/achiu3/Documents/Cmput 350/350-hw1/build-linux/engine",
+  "command": "/usr/bin/c++   -isystem \"/cshome/achiu3/Documents/Cmput 350/350-hw1/cmake/../extern/sfml-3.1.0-linux-x86_64-ubuntu20.04/include\"  -g   -std=c++2a -o CMakeFiles/Engine.dir/GameObject.cpp.o -c \"/cshome/achiu3/Documents/Cmput 350/350-hw1/engine/GameObject.cpp\"",
+  "file": "/cshome/achiu3/Documents/Cmput 350/350-hw1/engine/GameObject.cpp"
+},
+{
+  "directory": "/cshome/achiu3/Documents/Cmput 350/350-hw1/build-linux/engine",
+  "command": "/usr/bin/c++   -isystem \"/cshome/achiu3/Documents/Cmput 350/350-hw1/cmake/../extern/sfml-3.1.0-linux-x86_64-ubuntu20.04/include\"  -g   -std=c++2a -o CMakeFiles/Engine.dir/GraphicsObject.cpp.o -c \"/cshome/achiu3/Documents/Cmput 350/350-hw1/engine/GraphicsObject.cpp\"",
+  "file": "/cshome/achiu3/Documents/Cmput 350/350-hw1/engine/GraphicsObject.cpp"
+}
+]
