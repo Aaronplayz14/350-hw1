@@ -4,10 +4,37 @@
 
 namespace CMPUT350 {
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Creates a drawing context bound to an existing window and font.
+ *
+ * The context does not own the window or font; both are held by the
+ * GameEngine that constructs this object and are expected to outlive it.
+ *
+ * @param window The already-open SFML render window to draw onto.
+ * @param font The font used by DrawText and DrawCenteredText.
+ */
+//-----------------------------------------------------------------------
 DrawContext::DrawContext(std::shared_ptr<sf::RenderWindow> window, std::shared_ptr<sf::Font> font)
     : mWindow(window), mFont(font) {}
 
-void DrawContext::DrawText(const std::string&text, int pixelSize, Point2D p, RGBColor c)
+//-----------------------------------------------------------------------
+/**
+ * @brief Draws a line of text with its top-left corner at a given point.
+ *
+ * The pixel size is applied to the embedded font rather than scaling an
+ * existing image, so the glyphs stay crisp at every size.
+ *
+ * @param text The string to render.
+ * @param pixelSize Height of the glyphs in pixels.
+ * @param p The top-left position of the text in world coordinates.
+ * @param c The fill color of the glyphs.
+ * @return None. The text is drawn immediately onto the window.
+ *
+ * @see DrawCenteredText for the variant that centres on p instead.
+ */
+//-----------------------------------------------------------------------
+void DrawContext::DrawText(const std::string& text, int pixelSize, Point2D p, RGBColor c)
 {
     sf::Text label(*mFont, text, static_cast<unsigned int>(pixelSize));
     label.setFillColor(sf::Color(c.r, c.g, c.b));
@@ -16,6 +43,21 @@ void DrawContext::DrawText(const std::string&text, int pixelSize, Point2D p, RGB
     mWindow->draw(label);
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Draws a line of text centred on a given point.
+ *
+ * SFML positions a shape by its top-left corner, so the local bounds are
+ * measured and the origin is shifted by half their size before the shape is
+ * moved to p. Without this the text would sit down and to the right of p.
+ *
+ * @param text The string to render.
+ * @param pixelSize Height of the glyphs in pixels.
+ * @param p The point that should sit at the centre of the text.
+ * @param c The fill color of the glyphs.
+ * @return None. The text is drawn immediately onto the window.
+ */
+//-----------------------------------------------------------------------
 void DrawContext::DrawCenteredText(const std::string& text, int pixelSize, Point2D p, RGBColor c)
 {
     sf::Text label(*mFont, text, static_cast<unsigned int>(pixelSize));
@@ -30,6 +72,20 @@ void DrawContext::DrawCenteredText(const std::string& text, int pixelSize, Point
     mWindow->draw(label);
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Draws a filled circle.
+ *
+ * sf::CircleShape is anchored at its own top-left corner, so the origin is
+ * moved to the radius to make p the centre of the circle rather than the
+ * corner of its bounding box.
+ *
+ * @param p The centre of the circle in world coordinates.
+ * @param radius The radius of the circle in pixels.
+ * @param c The fill color of the circle.
+ * @return None. The circle is drawn immediately onto the window.
+ */
+//-----------------------------------------------------------------------
 void DrawContext::DrawCircle(Point2D p, float radius, RGBColor c)
 {
     sf::CircleShape circle(radius);
@@ -40,6 +96,18 @@ void DrawContext::DrawCircle(Point2D p, float radius, RGBColor c)
     mWindow->draw(circle);
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Draws a solid rectangle.
+ *
+ * The Rect stores its top-left corner rather than a centre, which matches the
+ * way SFML positions a RectangleShape, so no origin adjustment is needed.
+ *
+ * @param r The rectangle to fill, in world coordinates.
+ * @param c The fill color of the rectangle.
+ * @return None. The rectangle is drawn immediately onto the window.
+ */
+//-----------------------------------------------------------------------
 void DrawContext::DrawRect(Rect r, RGBColor c)
 {
     sf::RectangleShape rect({r.width, r.height});
@@ -49,6 +117,19 @@ void DrawContext::DrawRect(Rect r, RGBColor c)
     mWindow->draw(rect);
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Draws the outline of a rectangle with its interior left empty.
+ *
+ * The fill is set transparent and the colour is applied to the outline
+ * instead, which keeps the drawn pixels on the border of r only.
+ *
+ * @param r The rectangle to outline, in world coordinates.
+ * @param width The thickness of the border in pixels, drawn centred on the edge.
+ * @param c The color of the border.
+ * @return None. The outline is drawn immediately onto the window.
+ */
+//-----------------------------------------------------------------------
 void DrawContext::FrameRect(Rect r, float width, RGBColor c)
 {
     sf::RectangleShape rect({r.width, r.height});
@@ -60,6 +141,25 @@ void DrawContext::FrameRect(Rect r, float width, RGBColor c)
     mWindow->draw(rect);
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Draws a line segment of a given width between two points.
+ *
+ * SFML has no line primitive, so the segment is built as a four-point convex
+ * quad. The two corners at each end are offset by half the width along the
+ * normal to the segment, which keeps the drawn quad spanning exactly from
+ * "from" to "to" instead of trailing behind either endpoint.
+ *
+ * A zero-length segment has no direction to offset along, so the normal falls
+ * back to zero and the result collapses to a single point.
+ *
+ * @param from The starting point of the segment (Point2D).
+ * @param to The ending point of the segment (Point2D).
+ * @param width The thickness of the line in pixels.
+ * @param c The color of the line (RGBColor).
+ * @return None. The line is drawn immediately onto the window.
+ */
+//-----------------------------------------------------------------------
 void DrawContext::DrawLine(Point2D from, Point2D to, float width, RGBColor c)
 {
     float dx = to.x - from.x;
@@ -86,8 +186,22 @@ void DrawContext::DrawLine(Point2D from, Point2D to, float width, RGBColor c)
     mWindow->draw(line);
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Reports the width of the window in pixels.
+ *
+ * @return The horizontal size of the render window as configured at startup.
+ */
+//-----------------------------------------------------------------------
 int DrawContext::GetWindowWidth() { return mWindow->getSize().x; }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Reports the height of the window in pixels.
+ *
+ * @return The vertical size of the render window as configured at startup.
+ */
+//-----------------------------------------------------------------------
 int DrawContext::GetWindowHeight() { return mWindow->getSize().y; }
 
 }  // namespace CMPUT350
