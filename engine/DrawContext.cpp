@@ -62,15 +62,26 @@ void DrawContext::FrameRect(Rect r, float width, RGBColor c)
 
 void DrawContext::DrawLine(Point2D from, Point2D to, float width, RGBColor c)
 {
-    sf::Vector2f delta(to.x - from.x, to.y - from.y);
-    float length = std::sqrt(delta.x * delta.x + delta.y * delta.y);
+    float dx = to.x - from.x;
+    float dy = to.y - from.y;
+    float length = std::sqrt(dx * dx + dy * dy);
 
-    // A thin rotated rectangle makes a simple, easily-sized line.
-    sf::RectangleShape line({length, width});
+    // SFML has no line primitive, so build a thin quad along the segment.
+    // Half width perpendicular to the direction is the only offset needed.
+    float nx = 0.0f;
+    float ny = 0.0f;
+    if (length > 0.0f) {
+        nx = -dy / length * width / 2.0f;
+        ny = dx / length * width / 2.0f;
+    }
+
+    sf::ConvexShape line;
+    line.setPointCount(4);
+    line.setPoint(0, sf::Vector2f(from.x + nx, from.y + ny));
+    line.setPoint(1, sf::Vector2f(to.x + nx, to.y + ny));
+    line.setPoint(2, sf::Vector2f(to.x - nx, to.y - ny));
+    line.setPoint(3, sf::Vector2f(from.x - nx, from.y - ny));
     line.setFillColor(sf::Color(c.r, c.g, c.b));
-    line.setOrigin({0.0f, width / 2.0f});
-    line.setPosition({from.x, from.y});
-    line.setRotation(sf::radians(std::atan2(delta.y, delta.x)));
 
     mWindow->draw(line);
 }

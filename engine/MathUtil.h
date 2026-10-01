@@ -71,6 +71,9 @@ struct Point2D {
     float Dot(Point2D b) const {
         return x*b.x + y*b.y;
     }
+    float Cross(Point2D b) const {
+        return x*b.y - y*b.x;
+    }
     static float Dot(Point2D a, Point2D b) {
         return a.x*b.x + a.y*b.y;
     }
@@ -157,8 +160,8 @@ struct Rect {
     Point2D topLeft;
     float width, height;
 
-    Rect(float top, float left, float width, float height)
-        : topLeft(Point2D(top, left)), width(width), height(height) {}
+    Rect(float left, float top, float width, float height)
+        : topLeft(Point2D(left, top)), width(width), height(height) {}
 
     Rect(Point2D tl = {0, 0}, int w = 0, int h = 0) : topLeft(tl), width(w), height(h) {}
 

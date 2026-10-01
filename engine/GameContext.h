@@ -9,7 +9,7 @@ namespace CMPUT350 {
 
 class GameContext {
 public:
-    EngineView *mEngineView;
+    EngineView *EngineContext;
     DrawContext *ScreenContext;
 };
 
