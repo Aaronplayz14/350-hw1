@@ -235,9 +235,9 @@ void GameEngine::Run()
                     std::vector<Shape> shapesI = objI->GetShapes();
                     std::vector<Shape> shapesIJ = objIJ->GetShapes();
 
-                    for (std::size_t u; u < shapesI.size(); ++u)
+                    for (std::size_t u = 0; u < shapesI.size(); ++u)
                     {
-                        for (std::size_t v; v < shapesIJ.size(); ++v)
+                        for (std::size_t v = 0; v < shapesIJ.size(); ++v)
                         {
                             // Rect-Rect Collision
                             if(shapesI[u].t == ShapeType::kRect && shapesIJ[v].t == ShapeType::kRect) {
@@ -312,6 +312,7 @@ void GameEngine::Run()
                                     }
                                 }
 
+                            // Rect-Circle Collision
                             } else if (shapesI[u].t == ShapeType::kRect && shapesIJ[v].t == ShapeType::kCircle) {
                                 Circle circ1 = Circle(shapesIJ[v].shape.circle.center + objIJ->GetLocation(), shapesIJ[v].shape.circle.radius);
                                 Rect rect1 = shapesI[u].shape.rect + objI->GetLocation();

@@ -5,6 +5,7 @@ namespace CMPUT350 {
 
 void GraphicsObject::RenderBackground(GameContext *contextrender) { return; }
 void GraphicsObject::RenderForeground(GameContext *contextrender) { return; }
-float GraphicsObject::GetRotation() const{return 0.0;}
+Point2D GraphicsObject::GetLocation() const { return Point2D();}
+float GraphicsObject::GetRotation() const { return 0.0; }
 
 }  // namespace CMPUT350

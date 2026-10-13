@@ -17,6 +17,7 @@
 Bullet::Bullet(CMPUT350::Point2D location, CMPUT350::Point2D heading, bool player): 
     mLocation(location), mPreviousLocation(location), mHeading(heading), mPlayer(player), mAlive(true), mBounds(location, location)
 {
+    mShapes.push_back(CMPUT350::Shape(CMPUT350::Line(0.0, 0.0, -(heading.x), -(heading.y))));
 }
 
 //-----------------------------------------------------------------------
@@ -101,6 +102,16 @@ void Bullet::RenderForeground(CMPUT350::GameContext* context)
     context->ScreenContext->DrawLine( mPreviousLocation, mLocation, 3.0f, color);
 }
 
+CMPUT350::Point2D Bullet::GetLocation() const
+{
+    return mLocation;
+}
+
+float Bullet::GetRotation() const
+{
+    return 0.0;
+}
+
 //-----------------------------------------------------------------------
 /**
  * @brief Consumes the bullet when it hits an enemy.
@@ -123,6 +134,18 @@ void Bullet::CollisionEnter(const std::shared_ptr<CMPUT350::CollisionObject>& ob
     }
 }
 
+void Bullet::CollisionEnter(const std::shared_ptr<CMPUT350::CollisionObject>& obj, const CMPUT350::Point2D& collisionPoint)
+{
+    // Cast first: the cast is also the type test, so a nullptr means "not an
+    // enemy" without a second check.
+    std::shared_ptr<Enemy> enemy = std::dynamic_pointer_cast<Enemy>(obj);
+
+    if (enemy != nullptr && mPlayer)
+    {
+        this->Kill();
+    }
+}
+
 void Bullet::Kill()
 {
     mAlive = false;
@@ -130,12 +153,15 @@ void Bullet::Kill()
 
 bool Bullet::IsAlive() const
 {
-    // TODO: Update code
     return mAlive;
 }
 
 const CMPUT350::Rect& Bullet::GetBounds()
 {
-    // TODO: Update code
     return mBounds;
+}
+
+const std::vector<CMPUT350::Shape>& Bullet::GetShapes()
+{
+    return mShapes;
 }

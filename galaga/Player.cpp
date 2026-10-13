@@ -13,7 +13,8 @@
 Player::Player(CMPUT350::Point2D loc):mLoc(loc), mBounds(loc - 20.0f, 40.0f, 40.0f), mAlive(true), mSpeed(7.0f),
     mMoveLeft(false), mMoveRight(false)
 {
-    // TODO: Update code
+    mShapes.push_back(CMPUT350::Shape(CMPUT350::Rect(loc + CMPUT350::Point2D(-20.0f, 0.0f), 40.0f, 20.0f)));
+    mShapes.push_back(CMPUT350::Shape(CMPUT350::Rect(loc + CMPUT350::Point2D(-5.0f, -20.0f), 10.0f, 20.0f)));
 }
 
 void Player::Initialize(CMPUT350::GameContext* context)
@@ -144,6 +145,16 @@ void Player::RenderForeground(CMPUT350::GameContext* context)
     context->ScreenContext->DrawRect(CMPUT350::Rect(mLoc + CMPUT350::Point2D(-5.0f, 5.0f), 10.0f, 5.0f), CMPUT350::Colors::blue);
 }
 
+CMPUT350::Point2D Player::GetLocation() const
+{
+    return mLoc;
+}
+
+float Player::GetRotation() const
+{
+    return 0.0;
+}
+
 void Player::CollisionEnter(const std::shared_ptr<CMPUT350::CollisionObject>& obj)
 {
 }
@@ -155,12 +166,14 @@ void Player::Kill()
 
 bool Player::IsAlive() const
 {
-    // TODO: Update code
     return mAlive;
 }
 
 const CMPUT350::Rect& Player::GetBounds()
 {
-    // TODO: Update code
     return mBounds;
+}
+const std::vector<CMPUT350::Shape>& Player::GetShapes()
+{
+    return mShapes;
 }

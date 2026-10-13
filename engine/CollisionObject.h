@@ -2,6 +2,7 @@
 #define COLLISION_OBJECT_H
 
 #include <memory>
+#include <vector>
 
 #include "GraphicsObject.h"
 #include "MathUtil.h"
