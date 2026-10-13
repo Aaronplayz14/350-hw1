@@ -11,6 +11,10 @@ class GraphicsObject : public GameObject {
 public:
     virtual void RenderBackground(GameContext *context);
     virtual void RenderForeground(GameContext *context);
+    // Center of object with respect to rotation
+	virtual Point2D GetLocation() const = 0;
+	// Return the rotation of the object in radians
+	virtual float GetRotation() const = 0;
 };
 
 }  // namespace CMPUT350

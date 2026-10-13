@@ -224,17 +224,51 @@ void GameEngine::Run()
 
                 // Copy the bounds: operator&= mutates in place and we must
                 // not disturb the object's own stored rectangle.
-                CMPUT350::Rect boundsI = objI->GetBounds();
-                CMPUT350::Rect boundsIJ = objIJ->GetBounds();
+                Rect boundsI = objI->GetBounds();
+                Rect boundsIJ = objIJ->GetBounds();
 
                 // Rect::operator&= leaves width as NaN when the boxes miss,
                 // so a real number here means they overlap.
                 boundsI &= boundsIJ;
                 if (!std::isnan(boundsI.width))
                 {
-                    // Both sides are notified, so either object may react.
-                    objI->CollisionEnter(objIJ);
-                    objIJ->CollisionEnter(objI);
+                    std::vector<Shape> shapesI = objI->GetShapes();
+                    std::vector<Shape> shapesIJ = objIJ->GetShapes();
+
+                    for (std::size_t u; u < shapesI.size(); ++u)
+                    {
+                        for (std::size_t v; v < shapesIJ.size(); ++v)
+                        {
+                            if(shapesI[u].t == ShapeType::kRect && shapesIJ[v].t == ShapeType::kRect) {
+                                
+
+                            } else if (shapesI[u].t == ShapeType::kCircle && shapesIJ[v].t == ShapeType::kCircle) {
+                                Point2D center1 = shapesI[u].shape.circle.center + objI->GetLocation();
+                                Point2D center2 = shapesIJ[v].shape.circle.center + objIJ->GetLocation();
+                                if (center1.Distance(center2) <= shapesI[u].shape.circle.radius + shapesIJ[v].shape.circle.radius) {
+                                    objI->CollisionEnter(objIJ);
+                                    objIJ->CollisionEnter(objI);
+                                }
+
+                            } else if (shapesI[u].t == ShapeType::kLine && shapesIJ[v].t == ShapeType::kLine) {
+
+                            } else if (shapesI[u].t == ShapeType::kCircle && shapesIJ[v].t == ShapeType::kLine) {
+
+                            } else if (shapesI[u].t == ShapeType::kLine && shapesIJ[v].t == ShapeType::kCircle) {
+
+                            } else if (shapesI[u].t == ShapeType::kCircle && shapesIJ[v].t == ShapeType::kRect) {
+
+                            } else if (shapesI[u].t == ShapeType::kRect && shapesIJ[v].t == ShapeType::kCircle) {
+
+                            } else if (shapesI[u].t == ShapeType::kLine && shapesIJ[v].t == ShapeType::kRect) {
+
+                            } else if (shapesI[u].t == ShapeType::kRect && shapesIJ[v].t == ShapeType::kLine) {
+
+                            }
+                        }
+                    }
+                    
+                    
                 }
             }
         }
