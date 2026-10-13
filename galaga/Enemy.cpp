@@ -9,6 +9,7 @@
 //-----------------------------------------------------------------------
 Enemy::Enemy(CMPUT350::Point2D loc):mLoc(loc), mBounds(loc - 15.0f, 30.0f, 30.0f), mAlive(true)
 {
+    mShapes.push_back(CMPUT350::Shape(CMPUT350::Circle(0.0f, 0.0f, 15.0f)));
 }
 
 void Enemy::Initialize(CMPUT350::GameContext* context)
@@ -44,6 +45,16 @@ void Enemy::RenderForeground(CMPUT350::GameContext* context)
     context->ScreenContext->DrawRect(mBounds, CMPUT350::Colors::red);
 }
 
+CMPUT350::Point2D Enemy::GetLocation() const
+{
+    return mLoc;
+}
+
+float Enemy::GetRotation() const
+{
+    return 0.0;
+}
+
 //-----------------------------------------------------------------------
 /**
  * @brief Destroys the enemy when struck by a player bullet.
@@ -76,6 +87,10 @@ bool Enemy::IsAlive() const
 
 const CMPUT350::Rect& Enemy::GetBounds()
 {
-    // TODO: Update code
     return mBounds;
+}
+
+const std::vector<CMPUT350::Shape>& Enemy::GetShapes()
+{
+    return mShapes;
 }

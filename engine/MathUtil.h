@@ -22,11 +22,11 @@ struct Point2D {
     /// @brief Euclidean distance from this point to another.
     /// @param other The point to measure to.
     /// @return The distance in the same units as the coordinates.
-    double Distance(const Point2D &other) const {
+    float Distance(const Point2D &other) const {
         // Differences first, then one sqrt of the sum of squares.
         float xDif = other.x - x;
         float yDif = other.y - y;
-        double d = sqrt(xDif * xDif + yDif * yDif);
+        float d = sqrtf(xDif * xDif + yDif * yDif);
         return d;
     }
     /// @brief Component-wise vector addition. @return The sum of the two points.
@@ -258,7 +258,7 @@ struct Rect {
     Rect(float left, float top, float width, float height)
         : topLeft(Point2D(left, top)), width(width), height(height) {}
 
-    Rect(Point2D tl = {0, 0}, int w = 0, int h = 0) : topLeft(tl), width(w), height(h) {}
+    Rect(Point2D tl = {0, 0}, float w = 0.0, float h = 0.0) : topLeft(tl), width(w), height(h) {}
 
     // Creates bounding box around p1 and p2 with positive width/height
     Rect(Point2D p1, Point2D p2)
