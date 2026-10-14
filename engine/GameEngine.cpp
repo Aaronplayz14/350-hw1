@@ -303,7 +303,7 @@ void GameEngine::Run()
                                 Line rectLine3 = Line(rect1.topLeft + Point2D(rect1.width, 0.0), rect1.topLeft + Point2D(rect1.width, rect1.height)); 
                                 Line rectLine4 = Line(rect1.topLeft + Point2D(0.0, rect1.height), rect1.topLeft + Point2D(rect1.width, rect1.height));
                                 std::vector<Line> rectLines = {rectLine1, rectLine2, rectLine3, rectLine4};
-                                for (std::size_t w; w < rectLines.size(); ++w) {
+                                for (std::size_t w = 0; w < rectLines.size(); ++w) {
                                     Point2D closePoint = rectLines[w].ClosestPoint(circ1.center);
                                     if (circ1.center.Distance(closePoint) <= circ1.radius) {
                                         objI->CollisionEnter(objIJ);
@@ -321,7 +321,7 @@ void GameEngine::Run()
                                 Line rectLine3 = Line(rect1.topLeft + Point2D(rect1.width, 0.0), rect1.topLeft + Point2D(rect1.width, rect1.height)); 
                                 Line rectLine4 = Line(rect1.topLeft + Point2D(0.0, rect1.height), rect1.topLeft + Point2D(rect1.width, rect1.height));
                                 std::vector<Line> rectLines = {rectLine1, rectLine2, rectLine3, rectLine4};
-                                for (std::size_t w; w < rectLines.size(); ++w) {
+                                for (std::size_t w = 0; w < rectLines.size(); ++w) {
                                     Point2D closePoint = rectLines[w].ClosestPoint(circ1.center);
                                     if (circ1.center.Distance(closePoint) <= circ1.radius) {
                                         objI->CollisionEnter(objIJ);
@@ -341,7 +341,7 @@ void GameEngine::Run()
                                 std::vector<Line> rectLines = {rectLine1, rectLine2, rectLine3, rectLine4};
                                 Point2D collisionPoint = Point2D();
                                 float dist = INFINITY;
-                                for (std::size_t w; w < rectLines.size(); ++w) {
+                                for (std::size_t w = 0; w < rectLines.size(); ++w) {
                                     Point2D crossPoint = Point2D();
                                     if (line1.Crosses(rectLines[w], crossPoint)) {
                                         if (line1.p2.Distance(crossPoint) < dist) {
@@ -366,7 +366,7 @@ void GameEngine::Run()
                                 std::vector<Line> rectLines = {rectLine1, rectLine2, rectLine3, rectLine4};
                                 Point2D collisionPoint = Point2D();
                                 float dist = INFINITY;
-                                for (std::size_t w; w < rectLines.size(); ++w) {
+                                for (std::size_t w = 0; w < rectLines.size(); ++w) {
                                     Point2D crossPoint = Point2D();
                                     if (line1.Crosses(rectLines[w], crossPoint)) {
                                         if (line1.p2.Distance(crossPoint) < dist) {
@@ -390,23 +390,34 @@ void GameEngine::Run()
         for (auto& object : mGameObjects)
             object->LateUpdate(&mGameContext);
 
-        // 6. Draw the scene, background first. Two full passes rather
-        //    than one combined pass, because everything in the first group
-        //    must land underneath everything in the second (stars behind ships).
+        // 6. Draw the scene, background first. Two separate passes keep the
+        //    backgrounds (stars) underneath the foreground no matter what
+        //    order the objects happen to sit in.
         mWindow->clear(sf::Color::Black);
         for (auto& object : mGameObjects)
         {
             // raw pointer here: the shared_ptr must not gain an owner.
             if (auto* graphics = dynamic_cast<GraphicsObject*>(object.get()))
+            {
+                // The object draws in its own local space, so point the
+                // DrawContext at its world position and rotation first.
+                mDrawContext->SetContextOffset(graphics->GetLocation());
+                mDrawContext->SetContextRotation(graphics->GetRotation());
+
                 graphics->RenderBackground(&mGameContext);
+            }
         }
 
-        // 7. Foreground on top. Separate pass so ordering against the
-        //    background group is guaranteed by draw order, not object order.
+        // 7. Foreground on top, each with its own transform.
         for (auto& object : mGameObjects)
         {
             if (auto* graphics = dynamic_cast<GraphicsObject*>(object.get()))
+            {
+                mDrawContext->SetContextOffset(graphics->GetLocation());
+                mDrawContext->SetContextRotation(graphics->GetRotation());
+
                 graphics->RenderForeground(&mGameContext);
+            }
         }
 
         mWindow->display();

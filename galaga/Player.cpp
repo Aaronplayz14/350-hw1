@@ -13,8 +13,10 @@
 Player::Player(CMPUT350::Point2D loc):mLoc(loc), mBounds(loc - 20.0f, 40.0f, 40.0f), mAlive(true), mSpeed(7.0f),
     mMoveLeft(false), mMoveRight(false)
 {
-    mShapes.push_back(CMPUT350::Shape(CMPUT350::Rect(loc + CMPUT350::Point2D(-20.0f, 0.0f), 40.0f, 20.0f)));
-    mShapes.push_back(CMPUT350::Shape(CMPUT350::Rect(loc + CMPUT350::Point2D(-5.0f, -20.0f), 10.0f, 20.0f)));
+    // These hitboxes are local to mLoc; the engine adds GetLocation() when it
+    // tests them, so the world position must not be baked in here.
+    mShapes.push_back(CMPUT350::Shape(CMPUT350::Rect(-20.0f, 0.0f, 40.0f, 20.0f)));
+    mShapes.push_back(CMPUT350::Shape(CMPUT350::Rect(-5.0f, -20.0f, 10.0f, 20.0f)));
 }
 
 void Player::Initialize(CMPUT350::GameContext* context)
@@ -123,26 +125,29 @@ void Player::RenderBackground(CMPUT350::GameContext* context)
 /**
  * @brief Draws the ship as a blocky Galaga-style sprite.
  *
- * Ten rectangles are placed relative to mLoc: white blocks form the hull and
- * wings, red blocks mark the cockpit and engine, and a blue block forms the
- * base. The hitbox stays a single 40x40 rectangle rather than matching these
- * blocks exactly, which is the usual simplification for ship collision.
+ * The rectangles are relative to the ship's own origin, since the engine
+ * applies mLoc through the DrawContext before this runs. White blocks form
+ * the hull and wings, red marks the cockpit and engine, and a blue block is
+ * the base. Collision stays a simple box rather than matching these blocks
+ * exactly, which is the usual trade-off for a ship this small.
  * @param context Supplies the drawing context.
  * @return None.
  */
 //-----------------------------------------------------------------------
 void Player::RenderForeground(CMPUT350::GameContext* context)
 {
-    context->ScreenContext->DrawRect(CMPUT350::Rect(mLoc + CMPUT350::Point2D(-5.0f, -15.0f), 10.0f, 20.0f), CMPUT350::Colors::white);
-    context->ScreenContext->DrawRect(CMPUT350::Rect(mLoc + CMPUT350::Point2D(-10.0f, -5.0f), 5.0f, 15.0f), CMPUT350::Colors::white);
-    context->ScreenContext->DrawRect(CMPUT350::Rect(mLoc + CMPUT350::Point2D(5.0f, -5.0f), 5.0f, 15.0f), CMPUT350::Colors::white);
-    context->ScreenContext->DrawRect(CMPUT350::Rect(mLoc + CMPUT350::Point2D(-15.0f, 10.0f), 30.0f, 10.0f), CMPUT350::Colors::white);
-    context->ScreenContext->DrawRect(CMPUT350::Rect(mLoc + CMPUT350::Point2D(-20.0f, 5.0f), 5.0f, 10.0f), CMPUT350::Colors::white);
-    context->ScreenContext->DrawRect(CMPUT350::Rect(mLoc + CMPUT350::Point2D(15.0f, 5.0f), 5.0f, 10.0f), CMPUT350::Colors::white);
-    context->ScreenContext->DrawRect(CMPUT350::Rect(mLoc + CMPUT350::Point2D(-20.0f, 0.0f), 5.0f, 5.0f), CMPUT350::Colors::red);
-    context->ScreenContext->DrawRect(CMPUT350::Rect(mLoc + CMPUT350::Point2D(15.0f, 0.0f), 5.0f, 5.0f), CMPUT350::Colors::red);
-    context->ScreenContext->DrawRect(CMPUT350::Rect(mLoc + CMPUT350::Point2D(-5.0f, -20.0f), 10.0f, 5.0f), CMPUT350::Colors::red);
-    context->ScreenContext->DrawRect(CMPUT350::Rect(mLoc + CMPUT350::Point2D(-5.0f, 5.0f), 10.0f, 5.0f), CMPUT350::Colors::blue);
+    auto* screen = context->ScreenContext;
+
+    screen->DrawRect(CMPUT350::Rect(-5.0f, -15.0f, 10.0f, 20.0f), CMPUT350::Colors::white);
+    screen->DrawRect(CMPUT350::Rect(-10.0f, -5.0f, 5.0f, 15.0f), CMPUT350::Colors::white);
+    screen->DrawRect(CMPUT350::Rect(5.0f, -5.0f, 5.0f, 15.0f), CMPUT350::Colors::white);
+    screen->DrawRect(CMPUT350::Rect(-15.0f, 10.0f, 30.0f, 10.0f), CMPUT350::Colors::white);
+    screen->DrawRect(CMPUT350::Rect(-20.0f, 5.0f, 5.0f, 10.0f), CMPUT350::Colors::white);
+    screen->DrawRect(CMPUT350::Rect(15.0f, 5.0f, 5.0f, 10.0f), CMPUT350::Colors::white);
+    screen->DrawRect(CMPUT350::Rect(-20.0f, 0.0f, 5.0f, 5.0f), CMPUT350::Colors::red);
+    screen->DrawRect(CMPUT350::Rect(15.0f, 0.0f, 5.0f, 5.0f), CMPUT350::Colors::red);
+    screen->DrawRect(CMPUT350::Rect(-5.0f, -20.0f, 10.0f, 5.0f), CMPUT350::Colors::red);
+    screen->DrawRect(CMPUT350::Rect(-5.0f, 5.0f, 10.0f, 5.0f), CMPUT350::Colors::blue);
 }
 
 CMPUT350::Point2D Player::GetLocation() const
