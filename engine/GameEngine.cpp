@@ -1,6 +1,7 @@
 #include "GameEngine.h"
 
 #include <iostream>
+#include <algorithm>
 
 #include "DrawContext.h"
 #include "FontData.h"
@@ -8,37 +9,6 @@
 #include "CollisionObject.h"
 
 namespace CMPUT350 {
-namespace {
-
-//-----------------------------------------------------------------------
-/**
- * @brief Maps an SFML key code onto the movement characters the game expects.
- *
- * The engine only cares about left and right, so the arrow keys collapse onto
- * the same characters the game already used. '\0' means "not a movement key",
- * which lets the caller skip dispatching the event entirely.
- *
- * @param key The key code reported by a KeyPressed or KeyReleased event.
- * @return 'a' for left, 'd' for right, and '\0' for every other key.
- */
-//-----------------------------------------------------------------------
-char GetMovementKey(sf::Keyboard::Key key)
-{
-    switch (key)
-    {
-        case sf::Keyboard::Key::A:
-        case sf::Keyboard::Key::Left:
-            return 'a';
-        case sf::Keyboard::Key::D:
-        case sf::Keyboard::Key::Right:
-            return 'd';
-        default:
-            return '\0';
-    }
-}
-
-}  // namespace
-
 //-----------------------------------------------------------------------
 /**
  * @brief Opens the game window and prepares the engine for its main loop.
@@ -60,7 +30,7 @@ GameEngine::GameEngine(unsigned int width, unsigned int height, const std::strin
 {
     mWindow = std::make_shared<sf::RenderWindow>(sf::VideoMode({width, height}), name);
 
-    // Key repeat would fire HandleKeyState every few ms instead of once.
+    // Key repeat would send repeated key-down notifications instead of one.
     mWindow->setKeyRepeatEnabled(false);
 
     // The assignment caps the engine at 30 fps.
@@ -73,12 +43,16 @@ GameEngine::GameEngine(unsigned int width, unsigned int height, const std::strin
         std::cerr << "WARNING: Font did not load.\n";
 
     mDrawContext = std::make_shared<DrawContext>(mWindow, mFont);
+    mGUIContext = std::make_shared<DrawContext>(mWindow, mFont);
 
+    mGameContext.EngineContext = this;
+    mGameContext.ScreenContext = mDrawContext.get();
+    mGameContext.GUIContext = mGUIContext.get();
+    mGameContext.NotificationManager = &mNotificationManager;
+    mGameContext.currentFrame = 0;
     // Point game objects back at the engine they belong to. The drawing
     // context is a raw pointer because DrawContext is owned above and
     // outlives every object that borrows it.
-    mGameContext.EngineContext = this;
-    mGameContext.ScreenContext = mDrawContext.get();
 }
 
 //-----------------------------------------------------------------------
@@ -112,7 +86,63 @@ void GameEngine::AddGameObject(std::shared_ptr<GameObject> gameObject)
 {
     mObjectsToAdd.push_back(gameObject);
 }
+void GameEngine::InstallKeyDownNotification(int key, const std::string& notification)
+{
+    if (notification.empty()) {
+        return;
+    }
 
+    auto& notifications = mKeyDownNotifications[key];
+
+    // The same key/action pair should be stored only once.
+    if (std::find(
+            notifications.begin(),
+            notifications.end(),
+            notification
+        ) == notifications.end()) {
+        notifications.push_back(notification);
+    }
+}
+
+void GameEngine::InstallKeyUpNotification(
+    int key,
+    const std::string& notification
+)
+{
+    if (notification.empty()) {
+        return;
+    }
+
+    auto& notifications = mKeyUpNotifications[key];
+
+    if (std::find(
+            notifications.begin(),
+            notifications.end(),
+            notification
+        ) == notifications.end()) {
+        notifications.push_back(notification);
+    }
+}
+
+GameEngine::ObjectList::iterator GameEngine::begin()
+{
+    return mGameObjects.begin();
+}
+
+GameEngine::ObjectList::iterator GameEngine::end()
+{
+    return mGameObjects.end();
+}
+
+GameEngine::ObjectList::const_iterator GameEngine::cbegin() const
+{
+    return mGameObjects.cbegin();
+}
+
+GameEngine::ObjectList::const_iterator GameEngine::cend() const
+{
+    return mGameObjects.cend();
+}
 //-----------------------------------------------------------------------
 /**
  * @brief Runs the main game loop until the window is closed.
@@ -156,10 +186,14 @@ void GameEngine::Run()
         for (std::size_t i = 0; i < mObjectsToAdd.size(); ++i)
         {
             mGameObjects.push_back(mObjectsToAdd[i]);
+            mGameContext.CurrObject = mObjectsToAdd[i];
             mObjectsToAdd[i]->Initialize(&mGameContext);
+            mGameContext.CurrObject.reset();
         }
         // Cleared only after the loop: Initialize above may have queued more.
         mObjectsToAdd.clear();
+
+        mNotificationManager.AdvanceFrame(mGameContext.currentFrame);
 
         // 2. Window and keyboard events.
         while (const auto event = mWindow->pollEvent())
@@ -170,32 +204,26 @@ void GameEngine::Run()
                 break;
             }
 
-            // Held keys go through HandleKeyState so objects can poll them;
-            // HandleKeyEvent stays for one-shot presses like firing.
             if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>())
             {
-                const char movementKey = GetMovementKey(keyPressed->code);
-                if (movementKey != '\0')
-                {
-                    for (auto& object : mGameObjects)
-                        object->HandleKeyState(&mGameContext, movementKey, true);
+                const auto found = mKeyDownNotifications.find(
+                    static_cast<int>(keyPressed->scancode)
+                );
+                if (found != mKeyDownNotifications.end()) {
+                    for (const auto& notification : found->second) {
+                        mNotificationManager.Notify(notification);
+                    }
                 }
             }
             else if (const auto* keyReleased = event->getIf<sf::Event::KeyReleased>())
             {
-                const char movementKey = GetMovementKey(keyReleased->code);
-                if (movementKey != '\0')
-                {
-                    for (auto& object : mGameObjects)
-                        object->HandleKeyState(&mGameContext, movementKey, false);
-                }
-            }
-            else if (const auto* text = event->getIf<sf::Event::TextEntered>())
-            {
-                if (text->unicode <= 127)
-                {
-                    for (auto& object : mGameObjects)
-                        object->HandleKeyEvent(&mGameContext, static_cast<char>(text->unicode));
+                const auto found = mKeyUpNotifications.find(
+                    static_cast<int>(keyReleased->scancode)
+                );
+                if (found != mKeyUpNotifications.end()) {
+                    for (const auto& notification : found->second) {
+                        mNotificationManager.Notify(notification);
+                    }
                 }
             }
         }
@@ -204,7 +232,11 @@ void GameEngine::Run()
 
         // 3. Simulate the game.
         for (auto& object : mGameObjects)
+        {
+            mGameContext.CurrObject = object;
             object->Update(&mGameContext);
+            mGameContext.CurrObject.reset();
+        }
 
         // 4. Detect collisions. The outer bound stops one short of the end and
         //    the inner loop starts at i + 1, so each pair is visited exactly
@@ -388,7 +420,11 @@ void GameEngine::Run()
 
         // 5. Post-collision updates.
         for (auto& object : mGameObjects)
+        {
+            mGameContext.CurrObject = object;
             object->LateUpdate(&mGameContext);
+            mGameContext.CurrObject.reset();
+        }
 
         // 6. Draw the scene, background first. Two separate passes keep the
         //    backgrounds (stars) underneath the foreground no matter what
@@ -421,6 +457,7 @@ void GameEngine::Run()
         }
 
         mWindow->display();
+        ++mGameContext.currentFrame;
     }
 }
 

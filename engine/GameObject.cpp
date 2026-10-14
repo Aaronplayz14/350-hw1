@@ -48,34 +48,10 @@ void GameObject::LateUpdate(GameContext *context) { return; }
 //-----------------------------------------------------------------------
 void GameObject::RenderUI(GameContext *contextrender) { return; }
 
-//-----------------------------------------------------------------------
-/**
- * @brief Called once per key press for one-shot inputs such as firing.
- *
- * Only fire on the press, not while the key is held, so a single press does
- * not produce a burst of shots. For continuous input such as movement, use
- * HandleKeyState instead.
- * @param context Provides access to the engine and drawing context.
- * @param key The character that was pressed.
- * @return true if the key was consumed, false to let it pass unhandled.
- */
-//-----------------------------------------------------------------------
-bool GameObject::HandleKeyEvent(GameContext *context, char key) { return false; }
-
-//-----------------------------------------------------------------------
-/**
- * @brief Called on press and again on release for continuously held keys.
- *
- * Store the pressed state and act on it during Update rather than moving the
- * object here, which is what makes movement speed independent of frame rate.
- * @param context Provides access to the engine and drawing context.
- * @param key The movement character, 'a' for left or 'd' for right.
- * @param pressed true when the key goes down, false when it is released.
- * @return None.
- */
-//-----------------------------------------------------------------------
-void GameObject::HandleKeyState(GameContext *context, char key, bool pressed) { return; }
-
+void GameObject::ReceiveNotification(const std::string& notification)
+{
+    // Default: this object does not respond to notifications.
+}
 //-----------------------------------------------------------------------
 /**
  * @brief Reports whether the object should survive to the next frame.

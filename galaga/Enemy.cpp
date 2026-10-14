@@ -24,11 +24,6 @@ void Enemy::LateUpdate(CMPUT350::GameContext* context)
 {
 }
 
-bool Enemy::HandleKeyEvent(CMPUT350::GameContext* context, char key)
-{
-    return false;
-}
-
 void Enemy::RenderBackground(CMPUT350::GameContext* context)
 {
 }
