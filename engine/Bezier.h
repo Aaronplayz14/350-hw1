@@ -18,7 +18,7 @@ public:
 
 private:
     std::vector<Point2D> bezPts;
-    int seg;
+    size_t seg;
 };
 
 }  // namespace CMPUT350
