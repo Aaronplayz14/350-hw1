@@ -273,18 +273,38 @@ void GameEngine::Run()
                         {
                             // Rect-Rect Collision
                             if(shapesI[u].t == ShapeType::kRect && shapesIJ[v].t == ShapeType::kRect) {
-                                Rect rect1 = shapesI[u].shape.rect + objI->GetLocation();
-                                Rect rect2 = shapesIJ[v].shape.rect + objIJ->GetLocation();
-                                rect1 &= rect2;
-                                if (!std::isnan(rect1.width)) {
-                                    objI->CollisionEnter(objIJ);
-                                    objIJ->CollisionEnter(objI);
+                                // Rect 1
+                                std::vector<Point2D> rect1Points = shapesI[u].shape.rect.Points();
+                                Line rect1Line1 = Line(rect1Points[0].Rotate(objI->GetRotation()) + objI->GetLocation(), rect1Points[1].Rotate(objI->GetRotation()) + objI->GetLocation());
+                                Line rect1Line2 = Line(rect1Points[0].Rotate(objI->GetRotation()) + objI->GetLocation(), rect1Points[2].Rotate(objI->GetRotation()) + objI->GetLocation()); 
+                                Line rect1Line3 = Line(rect1Points[1].Rotate(objI->GetRotation()) + objI->GetLocation(), rect1Points[3].Rotate(objI->GetRotation()) + objI->GetLocation()); 
+                                Line rect1Line4 = Line(rect1Points[2].Rotate(objI->GetRotation()) + objI->GetLocation(), rect1Points[3].Rotate(objI->GetRotation()) + objI->GetLocation());
+                                std::vector<Line> rect1Lines = {rect1Line1, rect1Line2, rect1Line3, rect1Line4};
+                                // Rect 2
+                                std::vector<Point2D> rect2Points = shapesIJ[v].shape.rect.Points();
+                                Line rect2Line1 = Line(rect2Points[0].Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), rect2Points[1].Rotate(objIJ->GetRotation()) + objIJ->GetLocation());
+                                Line rect2Line2 = Line(rect2Points[0].Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), rect2Points[2].Rotate(objIJ->GetRotation()) + objIJ->GetLocation()); 
+                                Line rect2Line3 = Line(rect2Points[1].Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), rect2Points[3].Rotate(objIJ->GetRotation()) + objIJ->GetLocation()); 
+                                Line rect2Line4 = Line(rect2Points[2].Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), rect2Points[3].Rotate(objIJ->GetRotation()) + objIJ->GetLocation());
+                                std::vector<Line> rect2Lines = {rect2Line1, rect2Line2, rect2Line3, rect2Line4};
+                                
+                                bool cross = false;
+                                Point2D crossPoint = Point2D();
+                                for (std::size_t m = 0; (m < rect1Lines.size()) && !cross; ++m) {
+                                    for (std::size_t n = 0; (n < rect2Lines.size()) && !cross; ++n) {
+                                        if (rect1Lines[m].Crosses(rect2Lines[n], crossPoint)) {
+                                            Point2D cPointI = crossPoint - objI->GetLocation();
+                                            Point2D cPointIJ = crossPoint - objIJ->GetLocation();
+                                            objI->CollisionEnter(objIJ, cPointI.RotateReverse(objI->GetRotation()));
+                                            objIJ->CollisionEnter(objI, cPointIJ.RotateReverse(objIJ->GetRotation()));
+                                            cross = true;
+                                        }
+                                    }
                                 }
-
                             // Circle-Circle Collision    
                             } else if (shapesI[u].t == ShapeType::kCircle && shapesIJ[v].t == ShapeType::kCircle) {
-                                Point2D center1 = shapesI[u].shape.circle.center + objI->GetLocation();
-                                Point2D center2 = shapesIJ[v].shape.circle.center + objIJ->GetLocation();
+                                Point2D center1 = shapesI[u].shape.circle.center.Rotate(objI->GetRotation()) + objI->GetLocation();
+                                Point2D center2 = shapesIJ[v].shape.circle.center.Rotate(objIJ->GetRotation()) + objIJ->GetLocation();
                                 if (center1.Distance(center2) <= shapesI[u].shape.circle.radius + shapesIJ[v].shape.circle.radius) {
                                     objI->CollisionEnter(objIJ);
                                     objIJ->CollisionEnter(objI);
@@ -293,47 +313,57 @@ void GameEngine::Run()
                             // Line-Line Collision
                             } else if (shapesI[u].t == ShapeType::kLine && shapesIJ[v].t == ShapeType::kLine) {
                                 Point2D crossPoint = Point2D();
-                                Line line1 = Line(shapesI[u].shape.line.p1 + objI->GetLocation(), shapesI[u].shape.line.p2 + objI->GetLocation());
-                                Line line2 = Line(shapesIJ[v].shape.line.p1 + objIJ->GetLocation(), shapesIJ[v].shape.line.p2 + objIJ->GetLocation());
+                                Line line1 = Line(shapesI[u].shape.line.p1.Rotate(objI->GetRotation()) + objI->GetLocation(), 
+                                                  shapesI[u].shape.line.p2.Rotate(objI->GetRotation()) + objI->GetLocation());
+                                Line line2 = Line(shapesIJ[v].shape.line.p1.Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), 
+                                                  shapesIJ[v].shape.line.p2.Rotate(objIJ->GetRotation()) + objIJ->GetLocation());
                                 if (line1.Crosses(line2, crossPoint)) {
-                                    objI->CollisionEnter(objIJ, crossPoint);
-                                    objIJ->CollisionEnter(objI, crossPoint);
+                                    Point2D cPointI = crossPoint - objI->GetLocation();
+                                    Point2D cPointIJ = crossPoint - objIJ->GetLocation();
+                                    objI->CollisionEnter(objIJ, cPointI.RotateReverse(objI->GetRotation()));
+                                    objIJ->CollisionEnter(objI, cPointIJ.RotateReverse(objIJ->GetRotation()));
                                 }
 
                             // Circle-Line Collision
                             } else if (shapesI[u].t == ShapeType::kCircle && shapesIJ[v].t == ShapeType::kLine) {
-                                Circle circ1 = Circle(shapesI[u].shape.circle.center + objI->GetLocation(), shapesI[u].shape.circle.radius);
-                                Line line1 = Line(shapesIJ[v].shape.line.p1 + objIJ->GetLocation(), shapesIJ[v].shape.line.p2 + objIJ->GetLocation());
+                                Circle circ1 = Circle(shapesI[u].shape.circle.center.Rotate(objI->GetRotation()) + objI->GetLocation(), shapesI[u].shape.circle.radius);
+                                Line line1 = Line(shapesIJ[v].shape.line.p1.Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), 
+                                                  shapesIJ[v].shape.line.p2.Rotate(objIJ->GetRotation()) + objIJ->GetLocation());
                                 Point2D closePoint = line1.ClosestPoint(circ1.center);
                                 if (circ1.center.Distance(closePoint) <= circ1.radius) {
                                     float y = circ1.center.Distance(closePoint);
                                     float x = sqrtf(circ1.radius * circ1.radius - y * y);
                                     Point2D collisionPoint = closePoint + ((line1.p2 - closePoint) * (x / line1.p2.Distance(closePoint)));
-                                    objI->CollisionEnter(objIJ, collisionPoint);
-                                    objIJ->CollisionEnter(objI, collisionPoint);
+                                    Point2D cPointI = collisionPoint - objI->GetLocation();
+                                    Point2D cPointIJ = collisionPoint - objIJ->GetLocation();
+                                    objI->CollisionEnter(objIJ, cPointI.RotateReverse(objI->GetRotation()));
+                                    objIJ->CollisionEnter(objI, cPointIJ.RotateReverse(objIJ->GetRotation()));
                                 }
 
                             // Line-Circle Collision
                             } else if (shapesI[u].t == ShapeType::kLine && shapesIJ[v].t == ShapeType::kCircle) {
-                                Circle circ1 = Circle(shapesIJ[v].shape.circle.center + objIJ->GetLocation(), shapesIJ[v].shape.circle.radius);
-                                Line line1 = Line(shapesI[u].shape.line.p1 + objI->GetLocation(), shapesI[u].shape.line.p2 + objI->GetLocation());
+                                Circle circ1 = Circle(shapesIJ[v].shape.circle.center.Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), shapesIJ[v].shape.circle.radius);
+                                Line line1 = Line(shapesI[u].shape.line.p1.Rotate(objI->GetRotation()) + objI->GetLocation(), 
+                                                  shapesI[u].shape.line.p2.Rotate(objI->GetRotation()) + objI->GetLocation());
                                 Point2D closePoint = line1.ClosestPoint(circ1.center);
                                 if (circ1.center.Distance(closePoint) <= circ1.radius) {
                                     float y = circ1.center.Distance(closePoint);
                                     float x = sqrtf(circ1.radius * circ1.radius - y * y);
                                     Point2D collisionPoint = closePoint + ((line1.p2 - closePoint) * (x / line1.p2.Distance(closePoint)));
-                                    objI->CollisionEnter(objIJ, collisionPoint);
-                                    objIJ->CollisionEnter(objI, collisionPoint);
+                                    Point2D cPointI = collisionPoint - objI->GetLocation();
+                                    Point2D cPointIJ = collisionPoint - objIJ->GetLocation();
+                                    objI->CollisionEnter(objIJ, cPointI.RotateReverse(objI->GetRotation()));
+                                    objIJ->CollisionEnter(objI, cPointIJ.RotateReverse(objIJ->GetRotation()));
                                 }
 
                             // Circle-Rect Collision
                             } else if (shapesI[u].t == ShapeType::kCircle && shapesIJ[v].t == ShapeType::kRect) {
-                                Circle circ1 = Circle(shapesI[u].shape.circle.center + objI->GetLocation(), shapesI[u].shape.circle.radius);
-                                Rect rect1 = shapesIJ[v].shape.rect + objIJ->GetLocation();
-                                Line rectLine1 = Line(rect1.topLeft, rect1.topLeft + Point2D(rect1.width, 0.0));
-                                Line rectLine2 = Line(rect1.topLeft, rect1.topLeft + Point2D(0.0, rect1.height)); 
-                                Line rectLine3 = Line(rect1.topLeft + Point2D(rect1.width, 0.0), rect1.topLeft + Point2D(rect1.width, rect1.height)); 
-                                Line rectLine4 = Line(rect1.topLeft + Point2D(0.0, rect1.height), rect1.topLeft + Point2D(rect1.width, rect1.height));
+                                Circle circ1 = Circle(shapesI[u].shape.circle.center.Rotate(objI->GetRotation()) + objI->GetLocation(), shapesI[u].shape.circle.radius);
+                                std::vector<Point2D> rectPoints = shapesIJ[v].shape.rect.Points();
+                                Line rectLine1 = Line(rectPoints[0].Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), rectPoints[1].Rotate(objIJ->GetRotation()) + objIJ->GetLocation());
+                                Line rectLine2 = Line(rectPoints[0].Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), rectPoints[2].Rotate(objIJ->GetRotation()) + objIJ->GetLocation()); 
+                                Line rectLine3 = Line(rectPoints[1].Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), rectPoints[3].Rotate(objIJ->GetRotation()) + objIJ->GetLocation()); 
+                                Line rectLine4 = Line(rectPoints[2].Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), rectPoints[3].Rotate(objIJ->GetRotation()) + objIJ->GetLocation());
                                 std::vector<Line> rectLines = {rectLine1, rectLine2, rectLine3, rectLine4};
                                 for (std::size_t w = 0; w < rectLines.size(); ++w) {
                                     Point2D closePoint = rectLines[w].ClosestPoint(circ1.center);
@@ -346,12 +376,12 @@ void GameEngine::Run()
 
                             // Rect-Circle Collision
                             } else if (shapesI[u].t == ShapeType::kRect && shapesIJ[v].t == ShapeType::kCircle) {
-                                Circle circ1 = Circle(shapesIJ[v].shape.circle.center + objIJ->GetLocation(), shapesIJ[v].shape.circle.radius);
-                                Rect rect1 = shapesI[u].shape.rect + objI->GetLocation();
-                                Line rectLine1 = Line(rect1.topLeft, rect1.topLeft + Point2D(rect1.width, 0.0));
-                                Line rectLine2 = Line(rect1.topLeft, rect1.topLeft + Point2D(0.0, rect1.height)); 
-                                Line rectLine3 = Line(rect1.topLeft + Point2D(rect1.width, 0.0), rect1.topLeft + Point2D(rect1.width, rect1.height)); 
-                                Line rectLine4 = Line(rect1.topLeft + Point2D(0.0, rect1.height), rect1.topLeft + Point2D(rect1.width, rect1.height));
+                                Circle circ1 = Circle(shapesIJ[v].shape.circle.center.Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), shapesIJ[v].shape.circle.radius);
+                                std::vector<Point2D> rectPoints = shapesI[u].shape.rect.Points();
+                                Line rectLine1 = Line(rectPoints[0].Rotate(objI->GetRotation()) + objI->GetLocation(), rectPoints[1].Rotate(objI->GetRotation()) + objI->GetLocation());
+                                Line rectLine2 = Line(rectPoints[0].Rotate(objI->GetRotation()) + objI->GetLocation(), rectPoints[2].Rotate(objI->GetRotation()) + objI->GetLocation()); 
+                                Line rectLine3 = Line(rectPoints[1].Rotate(objI->GetRotation()) + objI->GetLocation(), rectPoints[3].Rotate(objI->GetRotation()) + objI->GetLocation()); 
+                                Line rectLine4 = Line(rectPoints[2].Rotate(objI->GetRotation()) + objI->GetLocation(), rectPoints[3].Rotate(objI->GetRotation()) + objI->GetLocation());
                                 std::vector<Line> rectLines = {rectLine1, rectLine2, rectLine3, rectLine4};
                                 for (std::size_t w = 0; w < rectLines.size(); ++w) {
                                     Point2D closePoint = rectLines[w].ClosestPoint(circ1.center);
@@ -364,12 +394,13 @@ void GameEngine::Run()
 
                             // Line-Rect Collision
                             } else if (shapesI[u].t == ShapeType::kLine && shapesIJ[v].t == ShapeType::kRect) {
-                                Line line1 = Line(shapesI[u].shape.line.p1 + objI->GetLocation(), shapesI[u].shape.line.p2 + objI->GetLocation());
-                                Rect rect1 = shapesIJ[v].shape.rect + objIJ->GetLocation();
-                                Line rectLine1 = Line(rect1.topLeft, rect1.topLeft + Point2D(rect1.width, 0.0));
-                                Line rectLine2 = Line(rect1.topLeft, rect1.topLeft + Point2D(0.0, rect1.height)); 
-                                Line rectLine3 = Line(rect1.topLeft + Point2D(rect1.width, 0.0), rect1.topLeft + Point2D(rect1.width, rect1.height)); 
-                                Line rectLine4 = Line(rect1.topLeft + Point2D(0.0, rect1.height), rect1.topLeft + Point2D(rect1.width, rect1.height));
+                                Line line1 = Line(shapesI[u].shape.line.p1.Rotate(objI->GetRotation()) + objI->GetLocation(), 
+                                                  shapesI[u].shape.line.p2.Rotate(objI->GetRotation()) + objI->GetLocation());
+                                std::vector<Point2D> rectPoints = shapesIJ[v].shape.rect.Points();
+                                Line rectLine1 = Line(rectPoints[0].Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), rectPoints[1].Rotate(objIJ->GetRotation()) + objIJ->GetLocation());
+                                Line rectLine2 = Line(rectPoints[0].Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), rectPoints[2].Rotate(objIJ->GetRotation()) + objIJ->GetLocation()); 
+                                Line rectLine3 = Line(rectPoints[1].Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), rectPoints[3].Rotate(objIJ->GetRotation()) + objIJ->GetLocation()); 
+                                Line rectLine4 = Line(rectPoints[2].Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), rectPoints[3].Rotate(objIJ->GetRotation()) + objIJ->GetLocation());
                                 std::vector<Line> rectLines = {rectLine1, rectLine2, rectLine3, rectLine4};
                                 Point2D collisionPoint = Point2D();
                                 float dist = INFINITY;
@@ -383,18 +414,21 @@ void GameEngine::Run()
                                     }
                                 }
                                 if (std::isfinite(dist)) {
-                                    objI->CollisionEnter(objIJ, collisionPoint);
-                                    objIJ->CollisionEnter(objI, collisionPoint);
+                                    Point2D cPointI = collisionPoint - objI->GetLocation();
+                                    Point2D cPointIJ = collisionPoint - objIJ->GetLocation();
+                                    objI->CollisionEnter(objIJ, cPointI.RotateReverse(objI->GetRotation()));
+                                    objIJ->CollisionEnter(objI, cPointIJ.RotateReverse(objIJ->GetRotation()));
                                 }
 
                             // Rect-Line Collision
                             } else if (shapesI[u].t == ShapeType::kRect && shapesIJ[v].t == ShapeType::kLine) {
-                                Line line1 = Line(shapesIJ[v].shape.line.p1 + objIJ->GetLocation(), shapesIJ[v].shape.line.p2 + objIJ->GetLocation());
-                                Rect rect1 = shapesI[u].shape.rect + objI->GetLocation();
-                                Line rectLine1 = Line(rect1.topLeft, rect1.topLeft + Point2D(rect1.width, 0.0));
-                                Line rectLine2 = Line(rect1.topLeft, rect1.topLeft + Point2D(0.0, rect1.height)); 
-                                Line rectLine3 = Line(rect1.topLeft + Point2D(rect1.width, 0.0), rect1.topLeft + Point2D(rect1.width, rect1.height)); 
-                                Line rectLine4 = Line(rect1.topLeft + Point2D(0.0, rect1.height), rect1.topLeft + Point2D(rect1.width, rect1.height));
+                                Line line1 = Line(shapesIJ[v].shape.line.p1.Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), 
+                                                  shapesIJ[v].shape.line.p2.Rotate(objIJ->GetRotation()) + objIJ->GetLocation());
+                                std::vector<Point2D> rectPoints = shapesI[u].shape.rect.Points();
+                                Line rectLine1 = Line(rectPoints[0].Rotate(objI->GetRotation()) + objI->GetLocation(), rectPoints[1].Rotate(objI->GetRotation()) + objI->GetLocation());
+                                Line rectLine2 = Line(rectPoints[0].Rotate(objI->GetRotation()) + objI->GetLocation(), rectPoints[2].Rotate(objI->GetRotation()) + objI->GetLocation()); 
+                                Line rectLine3 = Line(rectPoints[1].Rotate(objI->GetRotation()) + objI->GetLocation(), rectPoints[3].Rotate(objI->GetRotation()) + objI->GetLocation()); 
+                                Line rectLine4 = Line(rectPoints[2].Rotate(objI->GetRotation()) + objI->GetLocation(), rectPoints[3].Rotate(objI->GetRotation()) + objI->GetLocation());
                                 std::vector<Line> rectLines = {rectLine1, rectLine2, rectLine3, rectLine4};
                                 Point2D collisionPoint = Point2D();
                                 float dist = INFINITY;
@@ -408,8 +442,10 @@ void GameEngine::Run()
                                     }
                                 }
                                 if (std::isfinite(dist)) {
-                                    objI->CollisionEnter(objIJ, collisionPoint);
-                                    objIJ->CollisionEnter(objI, collisionPoint);
+                                    Point2D cPointI = collisionPoint - objI->GetLocation();
+                                    Point2D cPointIJ = collisionPoint - objIJ->GetLocation();
+                                    objI->CollisionEnter(objIJ, cPointI.RotateReverse(objI->GetRotation()));
+                                    objIJ->CollisionEnter(objI, cPointIJ.RotateReverse(objIJ->GetRotation()));
                                 }
                             }
                         }

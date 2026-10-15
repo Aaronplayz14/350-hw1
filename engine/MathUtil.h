@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <vector>
 
 namespace CMPUT350 {
 
@@ -140,6 +141,34 @@ struct Point2D {
             x /= mag;
             y /= mag;
         }
+    }
+
+    Point2D Rotate(float radians) const {
+        float cosTheta = std::cos(radians);
+        float sinTheta = std::sin(radians);
+
+        return Point2D(x * cosTheta - y * sinTheta, x * sinTheta + y * cosTheta);
+    }
+
+    Point2D RotateReverse(float radians) const {
+        float cosTheta = std::cos(radians);
+        float sinTheta = std::sin(radians);
+
+        return Point2D(x * cosTheta + y * sinTheta, -x * sinTheta + y * cosTheta);
+    }
+
+    static Point2D Rotate(const Point2D &p, float radians) {
+        float cosTheta = std::cos(radians);
+        float sinTheta = std::sin(radians);
+
+        return Point2D(p.x * cosTheta - p.y * sinTheta, p.x * sinTheta + p.y * cosTheta);
+    }
+
+    static Point2D RotateReverse(const Point2D &p, float radians) {
+        float cosTheta = std::cos(radians);
+        float sinTheta = std::sin(radians);
+
+        return Point2D(p.x * cosTheta + p.y * sinTheta, -p.x * sinTheta + p.y * cosTheta);
     }
 };
 
@@ -388,6 +417,11 @@ struct Rect {
             return true;
         }
         return false;
+    }
+
+    std::vector<Point2D> Points() const {
+        std::vector<Point2D> points = {topLeft + Point2D(), topLeft + Point2D(width, 0.0), topLeft + Point2D(0.0, height), topLeft + Point2D(width, height)};
+        return points;
     }
 };
 
