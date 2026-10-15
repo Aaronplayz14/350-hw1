@@ -143,28 +143,28 @@ struct Point2D {
         }
     }
 
-    Point2D rotate(float radians) const {
+    Point2D Rotate(float radians) const {
         float cosTheta = std::cos(radians);
         float sinTheta = std::sin(radians);
 
         return Point2D(x * cosTheta - y * sinTheta, x * sinTheta + y * cosTheta);
     }
 
-    Point2D rotateReverse(float radians) const {
+    Point2D RotateReverse(float radians) const {
         float cosTheta = std::cos(radians);
         float sinTheta = std::sin(radians);
 
         return Point2D(x * cosTheta + y * sinTheta, -x * sinTheta + y * cosTheta);
     }
 
-    static Point2D rotate(const Point2D &p, float radians) {
+    static Point2D Rotate(const Point2D &p, float radians) {
         float cosTheta = std::cos(radians);
         float sinTheta = std::sin(radians);
 
         return Point2D(p.x * cosTheta - p.y * sinTheta, p.x * sinTheta + p.y * cosTheta);
     }
 
-    static Point2D rotateReverse(const Point2D &p, float radians) {
+    static Point2D RotateReverse(const Point2D &p, float radians) {
         float cosTheta = std::cos(radians);
         float sinTheta = std::sin(radians);
 
