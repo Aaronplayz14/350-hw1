@@ -24,25 +24,25 @@ void Enemy::LateUpdate(CMPUT350::GameContext* context)
 {
 }
 
-bool Enemy::HandleKeyEvent(CMPUT350::GameContext* context, char key)
-{
-    return false;
-}
-
 void Enemy::RenderBackground(CMPUT350::GameContext* context)
 {
 }
 
 //-----------------------------------------------------------------------
 /**
- * @brief Draws the enemy as a filled red square matching its hitbox.
+ * @brief Draws the enemy as a filled red square.
+ *
+ * The square is centred on the enemy's local origin; the engine moves the
+ * DrawContext to the enemy's world position before this runs. Its collision
+ * shape is a circle, so the drawn square and the collision outline are only
+ * approximate matches.
  * @param context Supplies the drawing context.
  * @return None.
  */
 //-----------------------------------------------------------------------
 void Enemy::RenderForeground(CMPUT350::GameContext* context)
 {
-    context->ScreenContext->DrawRect(mBounds, CMPUT350::Colors::red);
+    context->ScreenContext->DrawRect(CMPUT350::Rect(-15.0f, -15.0f, 30.0f, 30.0f), CMPUT350::Colors::red);
 }
 
 CMPUT350::Point2D Enemy::GetLocation() const

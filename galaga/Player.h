@@ -1,6 +1,8 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
+#include <string>
+
 #include "CollisionObject.h"
 #include "Bullet.h"
 
@@ -13,11 +15,7 @@ public:
     void Initialize(CMPUT350::GameContext* context) override;
     void Update(CMPUT350::GameContext* context) override;
     void LateUpdate(CMPUT350::GameContext* context) override;
-    bool HandleKeyEvent(CMPUT350::GameContext* context, char key) override;
-
-    // Arrow keys arrive here instead of as text, so held keys can be polled
-    // every frame rather than moved one press at a time.
-    void HandleKeyState(CMPUT350::GameContext* context, char key, bool pressed) override;
+    void ReceiveNotification(const std::string& notification) override;
 
     bool IsAlive() const override;
     void Kill() override;
@@ -40,6 +38,7 @@ private:
     float mSpeed;
     bool mMoveLeft;
     bool mMoveRight;
+    bool mFireRequested;
     std::vector<CMPUT350::Shape> mShapes;
 
     // Weak on purpose: the engine owns the bullets, and an expired slot is

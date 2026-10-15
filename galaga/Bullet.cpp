@@ -17,7 +17,9 @@
 Bullet::Bullet(CMPUT350::Point2D location, CMPUT350::Point2D heading, bool player): 
     mLocation(location), mPreviousLocation(location), mHeading(heading), mPlayer(player), mAlive(true), mBounds(location, location)
 {
-    mShapes.push_back(CMPUT350::Shape(CMPUT350::Line(0.0, 0.0, -(heading.x), -(heading.y))));
+    // Segment points from where the bullet was toward where it is now, so the
+    // collision line matches the direction the bullet just travelled.
+    mShapes.push_back(CMPUT350::Shape(CMPUT350::Line(-(heading.x), -(heading.y), 0.0f, 0.0f)));
 }
 
 //-----------------------------------------------------------------------
@@ -77,11 +79,6 @@ void Bullet::LateUpdate(CMPUT350::GameContext* context)
 {
 }
 
-bool Bullet::HandleKeyEvent(CMPUT350::GameContext* context, char key)
-{
-    return false;
-}
-
 void Bullet::RenderBackground(CMPUT350::GameContext* context)
 {
 }
@@ -91,15 +88,21 @@ void Bullet::RenderBackground(CMPUT350::GameContext* context)
  * @brief Draws the bullet as a short streak along the segment it just moved.
  *
  * Drawing the segment travelled rather than a dot keeps fast bullets visible.
+ * Both endpoints are expressed relative to the bullet's current location,
+ * because the engine applies that location as the drawing offset.
  * @param context Supplies the drawing context.
  * @return None. Colour is yellow for player shots, cyan for enemy shots.
  */
 //-----------------------------------------------------------------------
 void Bullet::RenderForeground(CMPUT350::GameContext* context)
 {
-    CMPUT350::RGBColor color = mPlayer ? CMPUT350::Colors::yellow : CMPUT350::Colors::cyan;
+    const CMPUT350::RGBColor color = mPlayer ? CMPUT350::Colors::yellow : CMPUT350::Colors::cyan;
 
-    context->ScreenContext->DrawLine( mPreviousLocation, mLocation, 3.0f, color);
+    // The current position is the local origin, so shift the previous world
+    // position by it to get the streak's other end.
+    const CMPUT350::Point2D previousLocal = mPreviousLocation - mLocation;
+
+    context->ScreenContext->DrawLine(previousLocal, CMPUT350::Point2D(0.0f, 0.0f), 3.0f, color);
 }
 
 CMPUT350::Point2D Bullet::GetLocation() const
