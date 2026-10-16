@@ -45,14 +45,15 @@ GameEngine::GameEngine(unsigned int width, unsigned int height, const std::strin
     mDrawContext = std::make_shared<DrawContext>(mWindow, mFont);
     mGUIContext = std::make_shared<DrawContext>(mWindow, mFont);
 
+    // Fill in the context every object will receive. The engine view and the
+    // notification manager are pointed back at this engine, and the two draw
+    // contexts are borrowed as raw pointers because they are owned above and
+    // outlive every object that uses them.
     mGameContext.EngineContext = this;
     mGameContext.ScreenContext = mDrawContext.get();
     mGameContext.GUIContext = mGUIContext.get();
     mGameContext.Notifications = &mNotificationManager;
     mGameContext.currentFrame = 0;
-    // Point game objects back at the engine they belong to. The drawing
-    // context is a raw pointer because DrawContext is owned above and
-    // outlives every object that borrows it.
 }
 
 //-----------------------------------------------------------------------
@@ -86,6 +87,17 @@ void GameEngine::AddGameObject(std::shared_ptr<GameObject> gameObject)
 {
     mObjectsToAdd.push_back(gameObject);
 }
+//-----------------------------------------------------------------------
+/**
+ * @brief Registers a notification to send when a key is pressed.
+ *
+ * The same key can map to several notifications (for example both A and Left
+ * map to a "move left" action), and a duplicate mapping is ignored.
+ * @param key Scancode to watch, from CMPUT350::Key.
+ * @param notification Notification name to send when the key goes down.
+ * @return None.
+ */
+//-----------------------------------------------------------------------
 void GameEngine::InstallKeyDownNotification(int key, const std::string& notification)
 {
     if (notification.empty()) {
@@ -104,6 +116,14 @@ void GameEngine::InstallKeyDownNotification(int key, const std::string& notifica
     }
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Registers a notification to send when a key is released.
+ * @param key Scancode to watch, from CMPUT350::Key.
+ * @param notification Notification name to send when the key comes up.
+ * @return None.
+ */
+//-----------------------------------------------------------------------
 void GameEngine::InstallKeyUpNotification(
     int key,
     const std::string& notification
@@ -124,21 +144,45 @@ void GameEngine::InstallKeyUpNotification(
     }
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Mutable iterator to the first live game object.
+ * @return begin() of the internal object vector.
+ */
+//-----------------------------------------------------------------------
 GameEngine::ObjectList::iterator GameEngine::begin()
 {
     return mGameObjects.begin();
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Mutable iterator one past the last live game object.
+ * @return end() of the internal object vector.
+ */
+//-----------------------------------------------------------------------
 GameEngine::ObjectList::iterator GameEngine::end()
 {
     return mGameObjects.end();
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Const iterator to the first live game object.
+ * @return cbegin() of the internal object vector.
+ */
+//-----------------------------------------------------------------------
 GameEngine::ObjectList::const_iterator GameEngine::cbegin() const
 {
     return mGameObjects.cbegin();
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Const iterator one past the last live game object.
+ * @return cend() of the internal object vector.
+ */
+//-----------------------------------------------------------------------
 GameEngine::ObjectList::const_iterator GameEngine::cend() const
 {
     return mGameObjects.cend();

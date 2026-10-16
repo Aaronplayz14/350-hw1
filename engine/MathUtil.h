@@ -258,6 +258,13 @@ static std::ostream &operator<<(std::ostream &os, const Line &l) {
     return os << "(" << l.p1 << ", " << l.p2 << ")";
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief A circle defined by a centre point and a radius.
+ *
+ * @see Rect and Line for the other primitives used by the collision system.
+ */
+//-----------------------------------------------------------------------
 struct Circle {
     Point2D center;
     float radius;
