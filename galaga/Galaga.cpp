@@ -14,7 +14,7 @@ constexpr char kStart[] = "galaga.start";
 }
 
 Galaga::Galaga(unsigned int width, unsigned int height) : mWidth(width), mHeight(height), mAlive(true), mPlayerAlive(false), 
-    mScore(0), mLevel(0), mEnemyCount(0), mExtraLives(3), mCoins(0), mStartFrame(0), mLastAttack(0), state(GameState::Title),
+    mScore(0), mLevel(0), mEnemyCount(0), mExtraLives(3), mCoins(0), mStateStartFrame(0), mLastAttackElapsed(0), state(GameState::Title),
     mEngine(nullptr)
 {
 }
@@ -57,8 +57,8 @@ void Galaga::Initialize(CMPUT350::GameContext* context)
 
 void Galaga::Update(CMPUT350::GameContext* context)
 {
-    if (mStartFrame == 0) {
-        mStartFrame = context->currentFrame;
+    if (mStateStartFrame == 0) {
+        mStateStartFrame = context->currentFrame;
     }
 
     switch (state) {
@@ -74,7 +74,7 @@ void Galaga::Update(CMPUT350::GameContext* context)
             }
 
             // After 3 seconds enter Waves state
-            if (context->currentFrame - mStartFrame >= 90) {
+            if (context->currentFrame - mStateStartFrame >= 90) {
                 this->EnterState(GameState::Waves);
             }
 
@@ -87,29 +87,29 @@ void Galaga::Update(CMPUT350::GameContext* context)
             // Each entry launches one wave of 8 ships, which fly a Bezier path
             // from off-screen into their formation row. Five waves of 8 make the
             // 40-enemy formation set in EnterState().
-            if (context->currentFrame - mStartFrame == 30) {
+            if (context->currentFrame - mStateStartFrame == 30) {
                 SpawnWave(0, context);
             }
 
-            if (context->currentFrame - mStartFrame == 30 + spawnFreq) {
+            if (context->currentFrame - mStateStartFrame == 30 + spawnFreq) {
                 SpawnWave(1, context);
             }
 
-            if (context->currentFrame - mStartFrame == 30 + 2 * spawnFreq) {
+            if (context->currentFrame - mStateStartFrame == 30 + 2 * spawnFreq) {
                 SpawnWave(2, context);
             }
 
-            if (context->currentFrame - mStartFrame == 30 + 3 * spawnFreq) {
+            if (context->currentFrame - mStateStartFrame == 30 + 3 * spawnFreq) {
                 SpawnWave(3, context);
             }
 
-            if (context->currentFrame - mStartFrame == 30 + 4 * spawnFreq) {
+            if (context->currentFrame - mStateStartFrame == 30 + 4 * spawnFreq) {
                 SpawnWave(4, context);
             }
 
             // After the last wave enters, move on to gameplay. (TODO: May need
             // extra time to ensure the last wave is in formation first.)
-            if (context->currentFrame - mStartFrame == 30 + 5 * spawnFreq) {
+            if (context->currentFrame - mStateStartFrame == 30 + 5 * spawnFreq) {
                 this->EnterState(GameState::Gameplay);
             }
 
@@ -121,16 +121,16 @@ void Galaga::Update(CMPUT350::GameContext* context)
             int maxAttackLength = 300; // Length of time of longest possible attack
 
             // If an enemy exists AND if the player exists AND if interval since last attack has been reached: Activate attack
-            if (mEnemyCount > 0 && mPlayerAlive == true && context->currentFrame - mLastAttack >= attackFreq) {
+            if (mEnemyCount > 0 && mPlayerAlive == true && context->currentFrame - mLastAttackElapsed >= attackFreq) {
 
                 // TODO: Attack with set of enemies (semi-randomized if possible)
 
                 // Set frame of last attack
-                mLastAttack = context->currentFrame;
+                mLastAttackElapsed = context->currentFrame;
             }
 
             // If player is dead AND player has an extra life AND time since last attack is greater than max attack length: Spawn player
-            if (mPlayerAlive == false && mExtraLives > 0 && context->currentFrame - mLastAttack >= maxAttackLength) {
+            if (mPlayerAlive == false && mExtraLives > 0 && context->currentFrame - mLastAttackElapsed >= maxAttackLength) {
                 context->mEngineView->AddGameObject(std::make_shared<Player>(CMPUT350::Point2D(768 / 2, 900)));
                 --mExtraLives;
                 mPlayerAlive = true;
@@ -145,7 +145,7 @@ void Galaga::Update(CMPUT350::GameContext* context)
         }
         case GameState::GameOver:
 
-            if (context->currentFrame - mStartFrame >= 300) {
+            if (context->currentFrame - mStateStartFrame >= 300) {
                 this->EnterState(GameState::Title);
             }
 
@@ -260,7 +260,7 @@ void Galaga::Kill()
 
 void Galaga::EnterState(GameState newState)
 {
-    mStartFrame = 0;
+    mStateStartFrame = 0;
 
     switch (newState) {
         case GameState::Title:
