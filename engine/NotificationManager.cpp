@@ -144,11 +144,37 @@ NotificationManager::GetRecordedEvents() const
 //-----------------------------------------------------------------------
 bool NotificationManager::StartReplay()
 {
-    if (mRecordedEvents.empty()) {
+    return StartReplay([](const std::string&) { return true; });
+}
+
+//-----------------------------------------------------------------------
+/**
+ * @brief Begins replaying the recorded events that pass a filter.
+ *
+ * Only the events accepted by the filter are copied into the playback buffer,
+ * so a caller can choose to replay a subset (for example just player input).
+ * The playback clock starts at the current frame, exactly like the unfiltered
+ * overload.
+ * @param filter Predicate returning true for events to replay.
+ * @return true if at least one event was selected, false otherwise.
+ */
+//-----------------------------------------------------------------------
+bool NotificationManager::StartReplay(
+    const std::function<bool(const std::string&)>& filter)
+{
+    mPlaybackEvents.clear();
+
+    for (const auto& event : mRecordedEvents) {
+        if (filter(event.message)) {
+            mPlaybackEvents.push_back(event);
+        }
+    }
+
+    if (mPlaybackEvents.empty()) {
+        mIsReplaying = false;
         return false;
     }
 
-    mPlaybackEvents = mRecordedEvents;
     mPlaybackIndex = 0;
     mPlaybackStartFrame = mCurrentFrame;
     mIsReplaying = true;

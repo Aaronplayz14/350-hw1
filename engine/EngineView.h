@@ -39,6 +39,14 @@ public:
     /// @brief Maps a key scancode to a notification sent when it is released.
     virtual void InstallKeyUpNotification(int key, const std::string& notification) = 0;
 
+    /// @brief Removes every key binding registered so far.
+    ///
+    /// The keyboard setup screen needs to re-assign keys rather than pile extra
+    /// bindings on top of the old ones, so it clears the engine and then
+    /// re-installs the bindings it wants. This is an addition to the Part 1b
+    /// interface made specifically to support that extra-credit screen.
+    virtual void ClearKeyNotifications() = 0;
+
     /// @brief Const iterator to the first live game object.
     virtual const_iterator cbegin() const = 0;
     /// @brief Const iterator one past the last live game object.

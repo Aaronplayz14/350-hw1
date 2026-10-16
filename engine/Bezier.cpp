@@ -66,7 +66,7 @@ Point2D Bezier::GetPoint(float t) const
  * @return The tangent vector at t.
  */
 //-----------------------------------------------------------------------
-Point2D Bezier::GetSlope(float t) const
+CMPUT350::Vector2D Bezier::GetSlope(float t) const
 {
     assert(t >= 0 && t <= seg);
 
@@ -134,7 +134,7 @@ Point2D Bezier::GetPoint(const std::vector<Point2D> &pts, float t)
  * @return The tangent vector at t.
  */
 //-----------------------------------------------------------------------
-Point2D Bezier::GetSlope(const std::vector<Point2D> &pts, float t)
+CMPUT350::Vector2D Bezier::GetSlope(const std::vector<Point2D> &pts, float t)
 {
     assert(pts.size() != 0 && (pts.size() - 1) % 3 == 0);
     size_t seg = (pts.size() - 1) / 3;

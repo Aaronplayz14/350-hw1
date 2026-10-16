@@ -14,7 +14,7 @@
  * @param player true for shots fired by the player, false for enemy shots.
  */
 //-----------------------------------------------------------------------
-Bullet::Bullet(CMPUT350::Point2D location, CMPUT350::Point2D heading, bool player,
+Bullet::Bullet(CMPUT350::Point2D location, CMPUT350::Vector2D heading, bool player,
     std::weak_ptr<CMPUT350::GameObject> parent):
     mLocation(location), mPreviousLocation(location), mHeading(heading), mPlayer(player), mParent(parent), mAlive(true), mDestroyed(false), mHasCollisionPoint(false), mCollisionPoint(0.0f, 0.0f), mBounds(location, location)
 {
@@ -225,9 +225,13 @@ void Bullet::CollisionEnter(const std::shared_ptr<CMPUT350::CollisionObject>& ob
     const auto enemy = std::dynamic_pointer_cast<Enemy>(obj);
     const auto player = std::dynamic_pointer_cast<Player>(obj);
 
+    // Player fire hits enemies, and also a friendly ship that has been
+    // captured (shooting your own stolen fighter destroys it). Enemy fire only
+    // hits the player.
     const bool validTarget =
         (mPlayer && enemy != nullptr) ||
-        (!mPlayer && player != nullptr);
+        (!mPlayer && player != nullptr) ||
+        (mPlayer && player != nullptr && player->IsCaptured());
 
     if (!validTarget)
     {
@@ -277,17 +281,18 @@ void Bullet::CollisionEnter(
     const auto enemy = std::dynamic_pointer_cast<Enemy>(obj);
     const auto player = std::dynamic_pointer_cast<Player>(obj);
 
+    // Player fire hits enemies, and also a friendly ship that has been
+    // captured (shooting your own stolen fighter destroys it). Enemy fire only
+    // hits the player.
     const bool validTarget =
         (mPlayer && enemy != nullptr) ||
-        (!mPlayer && player != nullptr);
+        (!mPlayer && player != nullptr) ||
+        (mPlayer && player != nullptr && player->IsCaptured());
 
     if (!validTarget)
     {
         return;
     }
-
-    if (!mHasCollisionPoint ||
-        collisionPoint.y > mCollisionPoint.y)
     {
         mCollisionPoint = collisionPoint;
         mHasCollisionPoint = true;

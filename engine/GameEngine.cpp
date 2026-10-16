@@ -1,5 +1,6 @@
 #include "GameEngine.h"
 
+#include <cmath>
 #include <iostream>
 #include <algorithm>
 
@@ -9,6 +10,144 @@
 #include "CollisionObject.h"
 
 namespace CMPUT350 {
+
+namespace {
+
+// Computes the first point at which a directed segment enters a circle.
+//
+// The segment is treated as travelling from p1 to p2, so the returned point is
+// the contact nearest p1 (the "first" point hit), which is what a bullet needs
+// to plant its impact marker on the target. Returns false when the segment
+// never enters the circle.
+bool SegmentCircleEntry(const Line& line, const Circle& circle, Point2D& entry)
+{
+    const Point2D direction = line.p2 - line.p1;
+    const float lengthSquared = direction.Dot(direction);
+
+    // A zero-length segment degenerates to a point test.
+    if (lengthSquared <= 0.000001f) {
+        if (line.p1.Distance(circle.center) <= circle.radius) {
+            entry = line.p1;
+            return true;
+        }
+        return false;
+    }
+
+    // Quadratic form |p1 + t*d - center|^2 = r^2 over the infinite line.
+    const Point2D toStart = line.p1 - circle.center;
+    const float c = toStart.Dot(toStart) - circle.radius * circle.radius;
+
+    // Starting inside the circle means the first contact is the start point.
+    if (c <= 0.0f) {
+        entry = line.p1;
+        return true;
+    }
+
+    const float b = 2.0f * toStart.Dot(direction);
+    const float discriminant = b * b - 4.0f * lengthSquared * c;
+
+    if (discriminant < 0.0f) {
+        return false;
+    }
+
+    const float root = std::sqrt(discriminant);
+    const float tNear = (-b - root) / (2.0f * lengthSquared);
+    const float tFar = (-b + root) / (2.0f * lengthSquared);
+
+    // tNear is the entry if it lands on the segment; otherwise the segment
+    // ends inside the circle and tFar is the contact.
+    if (tNear >= 0.0f && tNear <= 1.0f) {
+        entry = line.p1 + direction * tNear;
+        return true;
+    }
+    if (tFar >= 0.0f && tFar <= 1.0f) {
+        entry = line.p1 + direction * tFar;
+        return true;
+    }
+
+    return false;
+}
+
+// Finds the first point where a directed segment enters a rotated rectangle.
+//
+// The segment is moved into the rectangle's local frame so the rectangle can
+// be treated as axis aligned. The crossing with the smallest parameter along
+// p1 -> p2 is the entry point; a segment that begins inside the rectangle
+// reports its start point.
+bool SegmentRectEntry(
+    const Line& line,
+    const Rect& rect,
+    float rectRotation,
+    const Point2D& rectLocation,
+    Point2D& entry)
+{
+    const Point2D localStart = (line.p1 - rectLocation).RotateReverse(rectRotation);
+    const Point2D localEnd = (line.p2 - rectLocation).RotateReverse(rectRotation);
+
+    if (rect.IsInside(localStart)) {
+        entry = line.p1;
+        return true;
+    }
+
+    const Line localLine(localStart, localEnd);
+    const std::vector<Point2D> corners = rect.Points();
+    const Line edges[4] = {
+        Line(corners[0], corners[1]),  // top
+        Line(corners[0], corners[2]),  // left
+        Line(corners[1], corners[3]),  // right
+        Line(corners[2], corners[3])   // bottom
+    };
+
+    const Point2D direction = localEnd - localStart;
+    const float lengthSquared = direction.Dot(direction);
+
+    bool found = false;
+    float bestT = 2.0f;
+    Point2D bestPoint;
+
+    for (int i = 0; i < 4; ++i) {
+        Point2D crossing;
+        if (localLine.Crosses(edges[i], crossing)) {
+            const float t = lengthSquared > 0.000001f
+                ? (crossing - localStart).Dot(direction) / lengthSquared
+                : 0.0f;
+
+            // Keep the crossing closest to the start of the directed segment.
+            if (t >= 0.0f && t <= 1.0f && t < bestT) {
+                bestT = t;
+                bestPoint = crossing;
+                found = true;
+            }
+        }
+    }
+
+    if (!found) {
+        return false;
+    }
+
+    entry = bestPoint.Rotate(rectRotation) + rectLocation;
+    return true;
+}
+
+// Tests whether a circle overlaps a rectangle that may be rotated.
+//
+// The circle centre is moved into the rectangle's local frame, where the
+// rectangle is axis aligned and the usual clamp-to-box distance test applies.
+bool CircleRectOverlap(const Circle& circle, const Rect& rect, float rectRotation, Point2D rectLocation)
+{
+    const Point2D local = (circle.center - rectLocation).RotateReverse(rectRotation);
+
+    const float right = rect.topLeft.x + rect.width;
+    const float bottom = rect.topLeft.y + rect.height;
+
+    const float closestX = std::max(rect.topLeft.x, std::min(local.x, right));
+    const float closestY = std::max(rect.topLeft.y, std::min(local.y, bottom));
+
+    return Point2D(closestX, closestY).Distance(local) <= circle.radius;
+}
+
+}  // namespace
+
 //-----------------------------------------------------------------------
 /**
  * @brief Opens the game window and prepares the engine for its main loop.
@@ -146,6 +285,23 @@ void GameEngine::InstallKeyUpNotification(
 
 //-----------------------------------------------------------------------
 /**
+ * @brief Removes every key binding registered with the engine.
+ *
+ * The keyboard setup screen calls this before re-installing the bindings it
+ * wants, so a re-assigned key takes effect cleanly instead of both the old and
+ * new keys sending notifications. Listeners registered with the notification
+ * manager are unaffected; only the key-to-notification map is cleared.
+ * @return None.
+ */
+//-----------------------------------------------------------------------
+void GameEngine::ClearKeyNotifications()
+{
+    mKeyDownNotifications.clear();
+    mKeyUpNotifications.clear();
+}
+
+//-----------------------------------------------------------------------
+/**
  * @brief Const iterator to the first live game object.
  * @return begin() of the internal object vector.
  */
@@ -255,7 +411,11 @@ void GameEngine::Run()
                     static_cast<int>(keyPressed->scancode)
                 );
                 if (found != mKeyDownNotifications.end()) {
-                    for (const auto& notification : found->second) {
+                    // Copy first: a listener may re-register (or clear) the
+                    // engine's bindings while handling the notification, which
+                    // would otherwise invalidate this iterator mid-loop.
+                    const std::vector<std::string> notifications = found->second;
+                    for (const auto& notification : notifications) {
                         mNotificationManager.Notify(notification);
                     }
                 }
@@ -266,7 +426,8 @@ void GameEngine::Run()
                     static_cast<int>(keyReleased->scancode)
                 );
                 if (found != mKeyUpNotifications.end()) {
-                    for (const auto& notification : found->second) {
+                    const std::vector<std::string> notifications = found->second;
+                    for (const auto& notification : notifications) {
                         mNotificationManager.Notify(notification);
                     }
                 }
@@ -374,15 +535,12 @@ void GameEngine::Run()
                                 Circle circ1 = Circle(shapesI[u].shape.circle.center.Rotate(objI->GetRotation()) + objI->GetLocation(), shapesI[u].shape.circle.radius);
                                 Line line1 = Line(shapesIJ[v].shape.line.p1.Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), 
                                                   shapesIJ[v].shape.line.p2.Rotate(objIJ->GetRotation()) + objIJ->GetLocation());
-                                Point2D closePoint = line1.ClosestPoint(circ1.center);
-                                if (circ1.center.Distance(closePoint) <= circ1.radius) {
-                                    float y = circ1.center.Distance(closePoint);
-                                    float x = sqrtf(circ1.radius * circ1.radius - y * y);
-                                    Point2D collisionPoint = closePoint + ((line1.p2 - closePoint) * (x / line1.p2.Distance(closePoint)));
-                                    Point2D cPointI = collisionPoint - objI->GetLocation();
-                                    Point2D cPointIJ = collisionPoint - objIJ->GetLocation();
-                                    objI->CollisionEnter(objIJ, cPointI.RotateReverse(objI->GetRotation()));
-                                    objIJ->CollisionEnter(objI, cPointIJ.RotateReverse(objIJ->GetRotation()));
+                                Point2D collisionPoint;
+                                if (SegmentCircleEntry(line1, circ1, collisionPoint)) {
+                                    Point2D cPointI = (collisionPoint - objI->GetLocation()).RotateReverse(objI->GetRotation());
+                                    Point2D cPointIJ = (collisionPoint - objIJ->GetLocation()).RotateReverse(objIJ->GetRotation());
+                                    objI->CollisionEnter(objIJ, cPointI);
+                                    objIJ->CollisionEnter(objI, cPointIJ);
                                 }
 
                             // Line-Circle Collision
@@ -390,107 +548,52 @@ void GameEngine::Run()
                                 Circle circ1 = Circle(shapesIJ[v].shape.circle.center.Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), shapesIJ[v].shape.circle.radius);
                                 Line line1 = Line(shapesI[u].shape.line.p1.Rotate(objI->GetRotation()) + objI->GetLocation(), 
                                                   shapesI[u].shape.line.p2.Rotate(objI->GetRotation()) + objI->GetLocation());
-                                Point2D closePoint = line1.ClosestPoint(circ1.center);
-                                if (circ1.center.Distance(closePoint) <= circ1.radius) {
-                                    float y = circ1.center.Distance(closePoint);
-                                    float x = sqrtf(circ1.radius * circ1.radius - y * y);
-                                    Point2D collisionPoint = closePoint + ((line1.p2 - closePoint) * (x / line1.p2.Distance(closePoint)));
-                                    Point2D cPointI = collisionPoint - objI->GetLocation();
-                                    Point2D cPointIJ = collisionPoint - objIJ->GetLocation();
-                                    objI->CollisionEnter(objIJ, cPointI.RotateReverse(objI->GetRotation()));
-                                    objIJ->CollisionEnter(objI, cPointIJ.RotateReverse(objIJ->GetRotation()));
+                                Point2D collisionPoint;
+                                if (SegmentCircleEntry(line1, circ1, collisionPoint)) {
+                                    Point2D cPointI = (collisionPoint - objI->GetLocation()).RotateReverse(objI->GetRotation());
+                                    Point2D cPointIJ = (collisionPoint - objIJ->GetLocation()).RotateReverse(objIJ->GetRotation());
+                                    objI->CollisionEnter(objIJ, cPointI);
+                                    objIJ->CollisionEnter(objI, cPointIJ);
                                 }
 
                             // Circle-Rect Collision
                             } else if (shapesI[u].t == ShapeType::kCircle && shapesIJ[v].t == ShapeType::kRect) {
                                 Circle circ1 = Circle(shapesI[u].shape.circle.center.Rotate(objI->GetRotation()) + objI->GetLocation(), shapesI[u].shape.circle.radius);
-                                std::vector<Point2D> rectPoints = shapesIJ[v].shape.rect.Points();
-                                Line rectLine1 = Line(rectPoints[0].Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), rectPoints[1].Rotate(objIJ->GetRotation()) + objIJ->GetLocation());
-                                Line rectLine2 = Line(rectPoints[0].Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), rectPoints[2].Rotate(objIJ->GetRotation()) + objIJ->GetLocation()); 
-                                Line rectLine3 = Line(rectPoints[1].Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), rectPoints[3].Rotate(objIJ->GetRotation()) + objIJ->GetLocation()); 
-                                Line rectLine4 = Line(rectPoints[2].Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), rectPoints[3].Rotate(objIJ->GetRotation()) + objIJ->GetLocation());
-                                std::vector<Line> rectLines = {rectLine1, rectLine2, rectLine3, rectLine4};
-                                for (std::size_t w = 0; w < rectLines.size(); ++w) {
-                                    Point2D closePoint = rectLines[w].ClosestPoint(circ1.center);
-                                    if (circ1.center.Distance(closePoint) <= circ1.radius) {
-                                        objI->CollisionEnter(objIJ);
-                                        objIJ->CollisionEnter(objI);
-                                        continue;
-                                    }
+                                if (CircleRectOverlap(circ1, shapesIJ[v].shape.rect, objIJ->GetRotation(), objIJ->GetLocation())) {
+                                    objI->CollisionEnter(objIJ);
+                                    objIJ->CollisionEnter(objI);
                                 }
 
                             // Rect-Circle Collision
                             } else if (shapesI[u].t == ShapeType::kRect && shapesIJ[v].t == ShapeType::kCircle) {
                                 Circle circ1 = Circle(shapesIJ[v].shape.circle.center.Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), shapesIJ[v].shape.circle.radius);
-                                std::vector<Point2D> rectPoints = shapesI[u].shape.rect.Points();
-                                Line rectLine1 = Line(rectPoints[0].Rotate(objI->GetRotation()) + objI->GetLocation(), rectPoints[1].Rotate(objI->GetRotation()) + objI->GetLocation());
-                                Line rectLine2 = Line(rectPoints[0].Rotate(objI->GetRotation()) + objI->GetLocation(), rectPoints[2].Rotate(objI->GetRotation()) + objI->GetLocation()); 
-                                Line rectLine3 = Line(rectPoints[1].Rotate(objI->GetRotation()) + objI->GetLocation(), rectPoints[3].Rotate(objI->GetRotation()) + objI->GetLocation()); 
-                                Line rectLine4 = Line(rectPoints[2].Rotate(objI->GetRotation()) + objI->GetLocation(), rectPoints[3].Rotate(objI->GetRotation()) + objI->GetLocation());
-                                std::vector<Line> rectLines = {rectLine1, rectLine2, rectLine3, rectLine4};
-                                for (std::size_t w = 0; w < rectLines.size(); ++w) {
-                                    Point2D closePoint = rectLines[w].ClosestPoint(circ1.center);
-                                    if (circ1.center.Distance(closePoint) <= circ1.radius) {
-                                        objI->CollisionEnter(objIJ);
-                                        objIJ->CollisionEnter(objI);
-                                        continue;
-                                    }
+                                if (CircleRectOverlap(circ1, shapesI[u].shape.rect, objI->GetRotation(), objI->GetLocation())) {
+                                    objI->CollisionEnter(objIJ);
+                                    objIJ->CollisionEnter(objI);
                                 }
 
                             // Line-Rect Collision
                             } else if (shapesI[u].t == ShapeType::kLine && shapesIJ[v].t == ShapeType::kRect) {
                                 Line line1 = Line(shapesI[u].shape.line.p1.Rotate(objI->GetRotation()) + objI->GetLocation(), 
                                                   shapesI[u].shape.line.p2.Rotate(objI->GetRotation()) + objI->GetLocation());
-                                std::vector<Point2D> rectPoints = shapesIJ[v].shape.rect.Points();
-                                Line rectLine1 = Line(rectPoints[0].Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), rectPoints[1].Rotate(objIJ->GetRotation()) + objIJ->GetLocation());
-                                Line rectLine2 = Line(rectPoints[0].Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), rectPoints[2].Rotate(objIJ->GetRotation()) + objIJ->GetLocation()); 
-                                Line rectLine3 = Line(rectPoints[1].Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), rectPoints[3].Rotate(objIJ->GetRotation()) + objIJ->GetLocation()); 
-                                Line rectLine4 = Line(rectPoints[2].Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), rectPoints[3].Rotate(objIJ->GetRotation()) + objIJ->GetLocation());
-                                std::vector<Line> rectLines = {rectLine1, rectLine2, rectLine3, rectLine4};
-                                Point2D collisionPoint = Point2D();
-                                float dist = INFINITY;
-                                for (std::size_t w = 0; w < rectLines.size(); ++w) {
-                                    Point2D crossPoint = Point2D();
-                                    if (line1.Crosses(rectLines[w], crossPoint)) {
-                                        if (line1.p2.Distance(crossPoint) < dist) {
-                                            collisionPoint = crossPoint;
-                                            dist = line1.p2.Distance(crossPoint);
-                                        }
-                                    }
-                                }
-                                if (std::isfinite(dist)) {
-                                    Point2D cPointI = collisionPoint - objI->GetLocation();
-                                    Point2D cPointIJ = collisionPoint - objIJ->GetLocation();
-                                    objI->CollisionEnter(objIJ, cPointI.RotateReverse(objI->GetRotation()));
-                                    objIJ->CollisionEnter(objI, cPointIJ.RotateReverse(objIJ->GetRotation()));
+                                Point2D collisionPoint;
+                                if (SegmentRectEntry(line1, shapesIJ[v].shape.rect, objIJ->GetRotation(), objIJ->GetLocation(), collisionPoint)) {
+                                    Point2D cPointI = (collisionPoint - objI->GetLocation()).RotateReverse(objI->GetRotation());
+                                    Point2D cPointIJ = (collisionPoint - objIJ->GetLocation()).RotateReverse(objIJ->GetRotation());
+                                    objI->CollisionEnter(objIJ, cPointI);
+                                    objIJ->CollisionEnter(objI, cPointIJ);
                                 }
 
                             // Rect-Line Collision
                             } else if (shapesI[u].t == ShapeType::kRect && shapesIJ[v].t == ShapeType::kLine) {
                                 Line line1 = Line(shapesIJ[v].shape.line.p1.Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), 
                                                   shapesIJ[v].shape.line.p2.Rotate(objIJ->GetRotation()) + objIJ->GetLocation());
-                                std::vector<Point2D> rectPoints = shapesI[u].shape.rect.Points();
-                                Line rectLine1 = Line(rectPoints[0].Rotate(objI->GetRotation()) + objI->GetLocation(), rectPoints[1].Rotate(objI->GetRotation()) + objI->GetLocation());
-                                Line rectLine2 = Line(rectPoints[0].Rotate(objI->GetRotation()) + objI->GetLocation(), rectPoints[2].Rotate(objI->GetRotation()) + objI->GetLocation()); 
-                                Line rectLine3 = Line(rectPoints[1].Rotate(objI->GetRotation()) + objI->GetLocation(), rectPoints[3].Rotate(objI->GetRotation()) + objI->GetLocation()); 
-                                Line rectLine4 = Line(rectPoints[2].Rotate(objI->GetRotation()) + objI->GetLocation(), rectPoints[3].Rotate(objI->GetRotation()) + objI->GetLocation());
-                                std::vector<Line> rectLines = {rectLine1, rectLine2, rectLine3, rectLine4};
-                                Point2D collisionPoint = Point2D();
-                                float dist = INFINITY;
-                                for (std::size_t w = 0; w < rectLines.size(); ++w) {
-                                    Point2D crossPoint = Point2D();
-                                    if (line1.Crosses(rectLines[w], crossPoint)) {
-                                        if (line1.p2.Distance(crossPoint) < dist) {
-                                            collisionPoint = crossPoint;
-                                            dist = line1.p2.Distance(crossPoint);
-                                        }
-                                    }
-                                }
-                                if (std::isfinite(dist)) {
-                                    Point2D cPointI = collisionPoint - objI->GetLocation();
-                                    Point2D cPointIJ = collisionPoint - objIJ->GetLocation();
-                                    objI->CollisionEnter(objIJ, cPointI.RotateReverse(objI->GetRotation()));
-                                    objIJ->CollisionEnter(objI, cPointIJ.RotateReverse(objIJ->GetRotation()));
+                                Point2D collisionPoint;
+                                if (SegmentRectEntry(line1, shapesI[u].shape.rect, objI->GetRotation(), objI->GetLocation(), collisionPoint)) {
+                                    Point2D cPointI = (collisionPoint - objI->GetLocation()).RotateReverse(objI->GetRotation());
+                                    Point2D cPointIJ = (collisionPoint - objIJ->GetLocation()).RotateReverse(objIJ->GetRotation());
+                                    objI->CollisionEnter(objIJ, cPointI);
+                                    objIJ->CollisionEnter(objI, cPointIJ);
                                 }
                             }
                         }
