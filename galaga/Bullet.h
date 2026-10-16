@@ -8,7 +8,7 @@ class Bullet : public CMPUT350::CollisionObject
 {
 public:
     Bullet(CMPUT350::Point2D location, CMPUT350::Point2D heading, bool player);
-    bool IsPlayerBullet();
+    bool IsPlayerBullet() const;
 
     // GameObject Functions
     void Initialize(CMPUT350::GameContext* context) override;
