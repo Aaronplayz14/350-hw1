@@ -16,7 +16,7 @@ public:
     DrawContext *ScreenContext;
     DrawContext *GUIContext;
     std::weak_ptr<GameObject> CurrObject;
-    NotificationManager *NotificationManager;
+    NotificationManager *Notifications;
     int currentFrame = 0;
 };
 

@@ -37,12 +37,12 @@ void Player::Initialize(CMPUT350::GameContext* context)
     // The engine sets CurrObject to this player before calling Initialize.
     const std::weak_ptr<CMPUT350::GameObject> self = context->CurrObject;
 
-    if (self.expired() || context->NotificationManager == nullptr
+    if (self.expired() || context->Notifications == nullptr
         || context->EngineContext == nullptr) {
         return;
     }
 
-    auto* notifications = context->NotificationManager;
+    auto* notifications = context->Notifications;
     auto* engine = context->EngineContext;
 
     // Subscribe the player to movement and shooting actions.

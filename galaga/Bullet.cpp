@@ -31,7 +31,7 @@ Bullet::Bullet(CMPUT350::Point2D location, CMPUT350::Point2D heading, bool playe
  * @return true if fired by the player, false if fired by an enemy.
  */
 //-----------------------------------------------------------------------
-bool Bullet::IsPlayerBullet()
+bool Bullet::IsPlayerBullet() const
 {
     // TODO: Update
     return mPlayer;
@@ -60,12 +60,13 @@ void Bullet::Update(CMPUT350::GameContext* context)
     mPreviousLocation = mLocation;
     mLocation += mHeading;
 
-    // Copied so the offscreen test reads the new position without mutating
-    // mLocation itself.
-    CMPUT350::Point2D pos = mLocation;
+    
+    const float windowWidth = static_cast<float>(context->ScreenContext->GetWindowWidth());
 
-    if (pos.x < 0 || pos.x > static_cast<float>(context->ScreenContext->GetWindowWidth()) ||
-        pos.y < 0 || pos.y > static_cast<float>(context->ScreenContext->GetWindowHeight()))
+    const float windowHeight = static_cast<float>(context->ScreenContext->GetWindowHeight());
+
+    if (mLocation.x < 0.0f || mLocation.x >= windowWidth ||
+        mLocation.y < 0.0f || mLocation.y >= windowHeight)
     {
         mAlive = false;
     }
@@ -129,24 +130,22 @@ void Bullet::CollisionEnter(const std::shared_ptr<CMPUT350::CollisionObject>& ob
 {
     // Cast first: the cast is also the type test, so a nullptr means "not an
     // enemy" without a second check.
-    std::shared_ptr<Enemy> enemy = std::dynamic_pointer_cast<Enemy>(obj);
-
-    if (enemy != nullptr && mPlayer)
+    if (!mPlayer)
     {
-        this->Kill();
+        return;
+    }
+
+    auto enemy = std::dynamic_pointer_cast<Enemy>(obj);
+
+    if (enemy != nullptr && enemy->IsAlive())
+    {
+        Kill();
     }
 }
 
 void Bullet::CollisionEnter(const std::shared_ptr<CMPUT350::CollisionObject>& obj, const CMPUT350::Point2D& collisionPoint)
 {
-    // Cast first: the cast is also the type test, so a nullptr means "not an
-    // enemy" without a second check.
-    std::shared_ptr<Enemy> enemy = std::dynamic_pointer_cast<Enemy>(obj);
-
-    if (enemy != nullptr && mPlayer)
-    {
-        this->Kill();
-    }
+    CollisionEnter(obj);
 }
 
 void Bullet::Kill()

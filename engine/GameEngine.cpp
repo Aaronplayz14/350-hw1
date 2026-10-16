@@ -48,7 +48,7 @@ GameEngine::GameEngine(unsigned int width, unsigned int height, const std::strin
     mGameContext.EngineContext = this;
     mGameContext.ScreenContext = mDrawContext.get();
     mGameContext.GUIContext = mGUIContext.get();
-    mGameContext.NotificationManager = &mNotificationManager;
+    mGameContext.Notifications = &mNotificationManager;
     mGameContext.currentFrame = 0;
     // Point game objects back at the engine they belong to. The drawing
     // context is a raw pointer because DrawContext is owned above and

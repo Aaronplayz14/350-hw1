@@ -66,9 +66,11 @@ float Enemy::GetRotation() const
 //-----------------------------------------------------------------------
 void Enemy::CollisionEnter(const std::shared_ptr<CMPUT350::CollisionObject>& obj)
 {
-    // nullptr from the cast means the overlap was not a bullet.
-    std::shared_ptr<Bullet> bullet = std::dynamic_pointer_cast<Bullet>(obj);
-
+    if (!mAlive)
+    {
+        return;
+    }
+    auto bullet = std::dynamic_pointer_cast<Bullet>(obj);
     if (bullet != nullptr && bullet->IsPlayerBullet())
     {
         Kill();
