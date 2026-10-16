@@ -1,6 +1,7 @@
 #include "Galaga.h"
 #include <memory>
 #include <vector>
+#include <string>
 #include "Player.h"
 #include "Enemy.h"
 #include "Stars.h"
@@ -162,18 +163,41 @@ void Galaga::LateUpdate(CMPUT350::GameContext* context)
 
 void Galaga::RenderUI(CMPUT350::GameContext* context)
 {
+    // Draw coin count
+    std::string coinText = "Coins: ";
+    context->GUIContext->DrawCenteredText(coinText + std::to_string(mCoins), 14, CMPUT350::Point2D(mWidth / 2, mHeight - 16), CMPUT350::Colors::white);
+
     if (state == GameState::Title) {
-        // TODO: Draw title screen text
+        // Draw title screen text
+        context->GUIContext->DrawCenteredText("Galuga", 100, CMPUT350::Point2D(mWidth / 2, mHeight / 2 - 50), CMPUT350::Colors::white);
+
+        if (context->currentFrame % 30 < 15) {
+            if (mCoins == 0) {
+                context->GUIContext->DrawCenteredText("Insert Coin [num 5]", 20, CMPUT350::Point2D(mWidth / 2, mHeight / 2 + 50), CMPUT350::Colors::white);
+            } else {
+                context->GUIContext->DrawCenteredText("Start Game [num 1]", 20, CMPUT350::Point2D(mWidth / 2, mHeight / 2 + 50), CMPUT350::Colors::white);
+            }
+        }
+
     } else {
-        // TODO: Draw score and extra lives
+        // Draw score and extra lives
+        std::string scoreText = "Score: ";
+        context->GUIContext->DrawText(scoreText + std::to_string(mScore), 18, CMPUT350::Point2D(15, 15), CMPUT350::Colors::white);
+
+        std::string livesText = "Lives: ";
+        context->GUIContext->DrawText(livesText + std::to_string(mExtraLives), 18, CMPUT350::Point2D(mWidth - 160, 15), CMPUT350::Colors::white);
+
     }
 
     if (state == GameState::Startup) {
-        // TODO: Draw level number
+        // Draw level number
+        std::string levelText = "Level ";
+        context->GUIContext->DrawCenteredText(levelText + std::to_string(mLevel), 40, CMPUT350::Point2D(mWidth / 2, mHeight / 2), CMPUT350::Colors::white);
     }
 
     if (state == GameState::GameOver) {
-        // TODO: Draw game over text
+        // Draw game over text
+        context->GUIContext->DrawCenteredText("Game Over", 40, CMPUT350::Point2D(mWidth / 2, mHeight / 2), CMPUT350::Colors::white);
     }
 
 }
