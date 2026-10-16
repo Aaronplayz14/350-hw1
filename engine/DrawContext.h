@@ -35,16 +35,25 @@ class GameEngine;
 
 class DrawContext {
 public:
+    /// @brief Binds the drawing context to a window and font.
     DrawContext(std::shared_ptr<sf::RenderWindow> window, std::shared_ptr<sf::Font> font);
 
+    /// @brief Draws text with its top-left at p (local space).
     void DrawText(const std::string &text, int pixelSize, Point2D p, RGBColor c);
+    /// @brief Draws text centred on p (local space).
     void DrawCenteredText(const std::string &text, int pixelSize, Point2D p, RGBColor c);
+    /// @brief Draws a filled circle centred on p (local space).
     void DrawCircle(Point2D p, float radius, RGBColor c);
+    /// @brief Draws a filled rectangle (local space).
     void DrawRect(Rect r, RGBColor c);
+    /// @brief Draws a rectangle outline of the given thickness (local space).
     void FrameRect(Rect r, float width, RGBColor c);
+    /// @brief Draws a line segment of the given thickness (local space).
     void DrawLine(Point2D from, Point2D to, float width, RGBColor c);
 
+    /// @brief Width of the render window in pixels.
     int GetWindowWidth();
+    /// @brief Height of the render window in pixels.
     int GetWindowHeight();
 
 private:

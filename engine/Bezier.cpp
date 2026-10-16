@@ -4,6 +4,12 @@
 
 namespace CMPUT350 {
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Stores the control points that define the curve.
+ * @param pts Control points; the count must satisfy (size - 1) % 3 == 0.
+ */
+//-----------------------------------------------------------------------
 Bezier::Bezier(const std::vector<Point2D> &pts)
 {
     assert(pts.size() != 0 && (pts.size() - 1) % 3 == 0);
@@ -11,10 +17,23 @@ Bezier::Bezier(const std::vector<Point2D> &pts)
     bezPts = pts;
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Evaluates the curve at parameter t using the stored control points.
+ *
+ * The whole-number part of t selects the cubic segment and the fractional part
+ * becomes the local parameter within it, after which the standard cubic
+ * Bernstein form is used.
+ *
+ * @param t Curve parameter, 0 <= t <= seg.
+ * @return The point on the curve.
+ */
+//-----------------------------------------------------------------------
 Point2D Bezier::GetPoint(float t) const
 {
     assert(t >= 0 && t <= seg);
 
+    // Split t into the segment index (tFloor) and the offset within it.
     float tFloor;
     if (t == seg)
         tFloor = t - 1;
@@ -36,6 +55,17 @@ Point2D Bezier::GetPoint(float t) const
     return Point2D(x, y);
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Returns the tangent vector of the curve at parameter t.
+ *
+ * The result is the derivative of the cubic Bernstein form (an un-normalised
+ * direction); callers that only need a heading use atan2 on it.
+ *
+ * @param t Curve parameter, 0 <= t <= seg.
+ * @return The tangent vector at t.
+ */
+//-----------------------------------------------------------------------
 Point2D Bezier::GetSlope(float t) const
 {
     assert(t >= 0 && t <= seg);
@@ -59,6 +89,14 @@ Point2D Bezier::GetSlope(float t) const
     return Point2D(dx, dy);
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Evaluates a curve from an explicit control-point list.
+ * @param pts Control points; (size - 1) must be divisible by 3.
+ * @param t Curve parameter, 0 <= t <= number of segments.
+ * @return The point on the curve.
+ */
+//-----------------------------------------------------------------------
 Point2D Bezier::GetPoint(const std::vector<Point2D> &pts, float t)
 {
     assert(pts.size() != 0 && (pts.size() - 1) % 3 == 0);
@@ -88,6 +126,14 @@ Point2D Bezier::GetPoint(const std::vector<Point2D> &pts, float t)
 
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Returns the tangent of a curve from an explicit control-point list.
+ * @param pts Control points; (size - 1) must be divisible by 3.
+ * @param t Curve parameter, 0 <= t <= number of segments.
+ * @return The tangent vector at t.
+ */
+//-----------------------------------------------------------------------
 Point2D Bezier::GetSlope(const std::vector<Point2D> &pts, float t)
 {
     assert(pts.size() != 0 && (pts.size() - 1) % 3 == 0);

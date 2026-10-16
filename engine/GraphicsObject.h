@@ -10,7 +10,9 @@ class GameContext;
 
 class GraphicsObject : public GameObject {
 public:
+    /// @brief Draws behind other objects; default draws nothing.
     virtual void RenderBackground(GameContext *context);
+    /// @brief Draws in front of other objects; default draws nothing.
     virtual void RenderForeground(GameContext *context);
     // Center of object with respect to rotation
 	virtual Point2D GetLocation() const;
@@ -20,4 +22,4 @@ public:
 
 }  // namespace CMPUT350
 
-#endif
+#endif // GRAPHICS_OBJECT_H

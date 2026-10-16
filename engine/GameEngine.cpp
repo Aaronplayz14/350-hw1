@@ -45,14 +45,15 @@ GameEngine::GameEngine(unsigned int width, unsigned int height, const std::strin
     mDrawContext = std::make_shared<DrawContext>(mWindow, mFont);
     mGUIContext = std::make_shared<DrawContext>(mWindow, mFont);
 
-    mGameContext.EngineContext = this;
+    // Fill in the context every object will receive. The engine view and the
+    // notification manager are pointed back at this engine, and the two draw
+    // contexts are borrowed as raw pointers because they are owned above and
+    // outlive every object that uses them.
+    mGameContext.mEngineView = this;
     mGameContext.ScreenContext = mDrawContext.get();
     mGameContext.GUIContext = mGUIContext.get();
-    mGameContext.Notifications = &mNotificationManager;
+    mGameContext.mNotificationManager = &mNotificationManager;
     mGameContext.currentFrame = 0;
-    // Point game objects back at the engine they belong to. The drawing
-    // context is a raw pointer because DrawContext is owned above and
-    // outlives every object that borrows it.
 }
 
 //-----------------------------------------------------------------------
@@ -86,6 +87,17 @@ void GameEngine::AddGameObject(std::shared_ptr<GameObject> gameObject)
 {
     mObjectsToAdd.push_back(gameObject);
 }
+//-----------------------------------------------------------------------
+/**
+ * @brief Registers a notification to send when a key is pressed.
+ *
+ * The same key can map to several notifications (for example both A and Left
+ * map to a "move left" action), and a duplicate mapping is ignored.
+ * @param key Scancode to watch, from CMPUT350::Key.
+ * @param notification Notification name to send when the key goes down.
+ * @return None.
+ */
+//-----------------------------------------------------------------------
 void GameEngine::InstallKeyDownNotification(int key, const std::string& notification)
 {
     if (notification.empty()) {
@@ -104,6 +116,14 @@ void GameEngine::InstallKeyDownNotification(int key, const std::string& notifica
     }
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Registers a notification to send when a key is released.
+ * @param key Scancode to watch, from CMPUT350::Key.
+ * @param notification Notification name to send when the key comes up.
+ * @return None.
+ */
+//-----------------------------------------------------------------------
 void GameEngine::InstallKeyUpNotification(
     int key,
     const std::string& notification
@@ -124,22 +144,46 @@ void GameEngine::InstallKeyUpNotification(
     }
 }
 
-GameEngine::ObjectList::iterator GameEngine::begin()
+//-----------------------------------------------------------------------
+/**
+ * @brief Const iterator to the first live game object.
+ * @return begin() of the internal object vector.
+ */
+//-----------------------------------------------------------------------
+GameEngine::const_iterator GameEngine::begin() const
 {
     return mGameObjects.begin();
 }
 
-GameEngine::ObjectList::iterator GameEngine::end()
+//-----------------------------------------------------------------------
+/**
+ * @brief Const iterator one past the last live game object.
+ * @return end() of the internal object vector.
+ */
+//-----------------------------------------------------------------------
+GameEngine::const_iterator GameEngine::end() const
 {
     return mGameObjects.end();
 }
 
-GameEngine::ObjectList::const_iterator GameEngine::cbegin() const
+//-----------------------------------------------------------------------
+/**
+ * @brief Const iterator to the first live game object.
+ * @return cbegin() of the internal object vector.
+ */
+//-----------------------------------------------------------------------
+GameEngine::const_iterator GameEngine::cbegin() const
 {
     return mGameObjects.cbegin();
 }
 
-GameEngine::ObjectList::const_iterator GameEngine::cend() const
+//-----------------------------------------------------------------------
+/**
+ * @brief Const iterator one past the last live game object.
+ * @return cend() of the internal object vector.
+ */
+//-----------------------------------------------------------------------
+GameEngine::const_iterator GameEngine::cend() const
 {
     return mGameObjects.cend();
 }
@@ -152,7 +196,8 @@ GameEngine::ObjectList::const_iterator GameEngine::cend() const
  * queued objects are activated before updates so they take part immediately,
  * collisions are detected after movement so they reflect the current frame's
  * positions, and background rendering is separated from foreground rendering
- * so stars and similar layers sit behind the ships.
+ * so stars and similar layers sit behind the ships. A final UI pass lets each
+ * object draw untransformed HUD content on top.
  *
  * Collision detection is a pairwise sweep over objects deriving from
  * CollisionObject. Only the upper triangle is visited (j starts at i + 1),
@@ -490,6 +535,15 @@ void GameEngine::Run()
 
                 graphics->RenderForeground(&mGameContext);
             }
+        }
+
+        // 8. UI pass: HUD content that ignores object transforms. Drawn last
+        //    so it sits on top; the GUI context is never given an offset.
+        for (auto& object : mGameObjects)
+        {
+            mGameContext.CurrObject = object;
+            object->RenderUI(&mGameContext);
+            mGameContext.CurrObject.reset();
         }
 
         mWindow->display();
