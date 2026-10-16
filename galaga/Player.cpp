@@ -2,19 +2,9 @@
 
 #include "Player.h"
 #include "Bullet.h"
-#include "Keyboard.h"
+#include "Enemy.h"
 #include "NotificationManager.h"
 namespace {
-
-// Names of the notifications the player listens for. The engine is told to
-// send these when the matching keys are pressed or released.
-constexpr char kMoveLeftDown[] = "player.move.left.down";
-constexpr char kMoveLeftUp[] = "player.move.left.up";
-
-constexpr char kMoveRightDown[] = "player.move.right.down";
-constexpr char kMoveRightUp[] = "player.move.right.up";
-
-constexpr char kShoot[] = "player.shoot";
 
 // Half the ship's width, used to keep the hull inside the window.
 constexpr float kHalfWidth = 20.0f;
@@ -33,7 +23,7 @@ constexpr float kHalfWidth = 20.0f;
  */
 //-----------------------------------------------------------------------
 Player::Player(CMPUT350::Point2D loc):mLoc(loc), mBounds(loc - kHalfWidth, 2.0f * kHalfWidth, 2.0f * kHalfWidth), mAlive(true), mSpeed(7.0f),
-    mMoveLeft(false), mMoveRight(false), mFireRequested(false)
+    mMoveLeft(false), mMoveRight(false), mFireRequested(false), mNotificationManager(nullptr)
 {
     // These hitboxes are local to mLoc; the engine adds GetLocation() when it
     // tests them, so the world position must not be baked in here.
@@ -43,16 +33,12 @@ Player::Player(CMPUT350::Point2D loc):mLoc(loc), mBounds(loc - kHalfWidth, 2.0f 
 
 //-----------------------------------------------------------------------
 /**
- * @brief Subscribes the ship to its movement and shooting notifications.
+ * @brief Subscribes the ship to the notifications the Galaga manager emits.
  *
- * Two things happen here: the player registers itself as a listener for the
- * notification names it cares about, and the engine is told which physical
- * keys should emit those notifications. A and Left both map to the left
- * action, D and Right both map to the right action, and Space emits a shot.
- *
- * Note: the assignment eventually expects the Galaga game object to install
- * the key bindings and the player to only register. Until Galaga exists the
- * player performs both steps so the ship is playable on its own.
+ * The manager owns the key bindings: it tells the engine which keys should send
+ * the movement and shooting notifications. The player only has to register for
+ * those notification names here, so the same ship works no matter which keys
+ * were bound.
  *
  * @param context The engine's per-frame context.
  * @return None.
@@ -67,37 +53,19 @@ void Player::Initialize(CMPUT350::GameContext* context)
     // The engine sets CurrObject to this player before calling Initialize.
     const std::weak_ptr<CMPUT350::GameObject> self = context->CurrObject;
 
-    if (self.expired() || context->Notifications == nullptr
-        || context->EngineContext == nullptr) {
+    if (self.expired() || context->mNotificationManager == nullptr) {
         return;
     }
 
-    auto* notifications = context->Notifications;
-    auto* engine = context->EngineContext;
+    mNotificationManager = context->mNotificationManager;
 
     // Subscribe the player to movement and shooting actions.
+    auto* notifications = context->mNotificationManager;
     notifications->Register(self, kMoveLeftDown);
     notifications->Register(self, kMoveLeftUp);
     notifications->Register(self, kMoveRightDown);
     notifications->Register(self, kMoveRightUp);
     notifications->Register(self, kShoot);
-
-    // A and Left Arrow begin moving left.
-    engine->InstallKeyDownNotification(CMPUT350::Key::A, kMoveLeftDown);
-    engine->InstallKeyUpNotification(CMPUT350::Key::A, kMoveLeftUp);
-
-    engine->InstallKeyDownNotification(CMPUT350::Key::Left, kMoveLeftDown);
-    engine->InstallKeyUpNotification(CMPUT350::Key::Left, kMoveLeftUp);
-
-    // D and Right Arrow begin moving right.
-    engine->InstallKeyDownNotification(CMPUT350::Key::D, kMoveRightDown);
-    engine->InstallKeyUpNotification(CMPUT350::Key::D, kMoveRightUp);
-
-    engine->InstallKeyDownNotification(CMPUT350::Key::Right, kMoveRightDown);
-    engine->InstallKeyUpNotification(CMPUT350::Key::Right, kMoveRightUp);
-
-    // Space requests one shot.
-    engine->InstallKeyDownNotification(CMPUT350::Key::Space, kShoot);
 }
 
 //-----------------------------------------------------------------------
@@ -148,7 +116,7 @@ void Player::Update(CMPUT350::GameContext* context)
         mFireRequested = false;
 
         // Without the engine there is nowhere to send the bullet.
-        if (context == nullptr || context->EngineContext == nullptr) {
+        if (context == nullptr || context->mEngineView == nullptr) {
             return;
         }
 
@@ -160,7 +128,7 @@ void Player::Update(CMPUT350::GameContext* context)
                 context->CurrObject
             );
             b1 = bullet;
-            context->EngineContext->AddGameObject(bullet);
+            context->mEngineView->AddGameObject(bullet);
         } else if (b2.expired()) {
             auto bullet = std::make_shared<Bullet>(
                 CMPUT350::Point2D(mLoc),
@@ -169,7 +137,7 @@ void Player::Update(CMPUT350::GameContext* context)
                 context->CurrObject
             );
             b2 = bullet;
-            context->EngineContext->AddGameObject(bullet);
+            context->mEngineView->AddGameObject(bullet);
         }
     }
 }
@@ -229,33 +197,50 @@ float Player::GetRotation() const
 
 //-----------------------------------------------------------------------
 /**
- * @brief Reaction to being hit by an enemy or an enemy bullet.
+ * @brief Kills the ship when an enemy or an enemy bullet touches it.
  *
- * Left intentionally empty for now: losing a life, playing a death animation,
- * and respawning all belong to the Galaga game manager, which is not written
- * yet. The enemy bullets still destroy themselves on contact, so the ship
- * simply cannot be killed until that manager exists.
+ * The ship is only harmed by enemies and enemy fire; its own bullets pass
+ * through. Death is announced so the Galaga manager can take a life and, once
+ * the playfield is clear, respawn the ship. Respawning and the game-over
+ * transition are the manager's responsibility, not the ship's.
  * @param obj The object that overlapped the ship.
  * @return None.
  */
 //-----------------------------------------------------------------------
 void Player::CollisionEnter(const std::shared_ptr<CMPUT350::CollisionObject>& obj)
 {
-    (void)obj;
+    if (!mAlive || obj == nullptr) {
+        return;
+    }
+
+    const bool hitByEnemy = std::dynamic_pointer_cast<Enemy>(obj) != nullptr;
+    const auto bullet = std::dynamic_pointer_cast<Bullet>(obj);
+    const bool hitByEnemyBullet = bullet != nullptr && !bullet->IsPlayerBullet();
+
+    if (hitByEnemy || hitByEnemyBullet) {
+        Kill();
+    }
 }
 
 //-----------------------------------------------------------------------
 /**
- * @brief Kills the ship immediately.
+ * @brief Kills the ship and announces it to the Galaga manager.
  *
- * The engine removes the ship once IsAlive returns false. Respawning is the
- * game manager's responsibility.
+ * The engine removes the ship once IsAlive returns false. The manager decides
+ * whether the ship has a spare life and when to respawn it.
  * @return None.
  */
 //-----------------------------------------------------------------------
 void Player::Kill()
 {
+    if (!mAlive) {
+        return;
+    }
+
     mAlive = false;
+    if (mNotificationManager != nullptr) {
+        mNotificationManager->Notify(kDestroyedNotification);
+    }
 }
 
 bool Player::IsAlive() const

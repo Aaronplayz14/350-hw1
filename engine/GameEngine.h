@@ -35,15 +35,15 @@ public:
     /// @brief Registers a notification name to send when a key is released.
     void InstallKeyUpNotification(int key, const std::string& notification) override;
 
-    /// @brief Mutable iterator to the first live object.
-    ObjectList::iterator begin() override;
-    /// @brief Mutable iterator one past the last live object.
-    ObjectList::iterator end() override;
+    /// @brief Const iterator to the first live object.
+    const_iterator begin() const override;
+    /// @brief Const iterator one past the last live object.
+    const_iterator end() const override;
 
     /// @brief Const iterator to the first live object.
-    ObjectList::const_iterator cbegin() const override;
+    const_iterator cbegin() const override;
     /// @brief Const iterator one past the last live object.
-    ObjectList::const_iterator cend() const override;
+    const_iterator cend() const override;
 
     /// @brief Runs the main loop until the window closes.
     void Run();
@@ -56,8 +56,8 @@ private:
     std::shared_ptr<DrawContext> mGUIContext;
 
     // All objects active in the game, and any that were queued during a frame.
-    std::vector<std::shared_ptr<GameObject>> mGameObjects;
-    std::vector<std::shared_ptr<GameObject>> mObjectsToAdd;
+    tGameObject mGameObjects;
+    tGameObject mObjectsToAdd;
     NotificationMap mKeyDownNotifications;
     NotificationMap mKeyUpNotifications;
 

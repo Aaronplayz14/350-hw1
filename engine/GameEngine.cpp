@@ -49,10 +49,10 @@ GameEngine::GameEngine(unsigned int width, unsigned int height, const std::strin
     // notification manager are pointed back at this engine, and the two draw
     // contexts are borrowed as raw pointers because they are owned above and
     // outlive every object that uses them.
-    mGameContext.EngineContext = this;
+    mGameContext.mEngineView = this;
     mGameContext.ScreenContext = mDrawContext.get();
     mGameContext.GUIContext = mGUIContext.get();
-    mGameContext.Notifications = &mNotificationManager;
+    mGameContext.mNotificationManager = &mNotificationManager;
     mGameContext.currentFrame = 0;
 }
 
@@ -146,22 +146,22 @@ void GameEngine::InstallKeyUpNotification(
 
 //-----------------------------------------------------------------------
 /**
- * @brief Mutable iterator to the first live game object.
+ * @brief Const iterator to the first live game object.
  * @return begin() of the internal object vector.
  */
 //-----------------------------------------------------------------------
-GameEngine::ObjectList::iterator GameEngine::begin()
+GameEngine::const_iterator GameEngine::begin() const
 {
     return mGameObjects.begin();
 }
 
 //-----------------------------------------------------------------------
 /**
- * @brief Mutable iterator one past the last live game object.
+ * @brief Const iterator one past the last live game object.
  * @return end() of the internal object vector.
  */
 //-----------------------------------------------------------------------
-GameEngine::ObjectList::iterator GameEngine::end()
+GameEngine::const_iterator GameEngine::end() const
 {
     return mGameObjects.end();
 }
@@ -172,7 +172,7 @@ GameEngine::ObjectList::iterator GameEngine::end()
  * @return cbegin() of the internal object vector.
  */
 //-----------------------------------------------------------------------
-GameEngine::ObjectList::const_iterator GameEngine::cbegin() const
+GameEngine::const_iterator GameEngine::cbegin() const
 {
     return mGameObjects.cbegin();
 }
@@ -183,7 +183,7 @@ GameEngine::ObjectList::const_iterator GameEngine::cbegin() const
  * @return cend() of the internal object vector.
  */
 //-----------------------------------------------------------------------
-GameEngine::ObjectList::const_iterator GameEngine::cend() const
+GameEngine::const_iterator GameEngine::cend() const
 {
     return mGameObjects.cend();
 }
@@ -196,7 +196,8 @@ GameEngine::ObjectList::const_iterator GameEngine::cend() const
  * queued objects are activated before updates so they take part immediately,
  * collisions are detected after movement so they reflect the current frame's
  * positions, and background rendering is separated from foreground rendering
- * so stars and similar layers sit behind the ships.
+ * so stars and similar layers sit behind the ships. A final UI pass lets each
+ * object draw untransformed HUD content on top.
  *
  * Collision detection is a pairwise sweep over objects deriving from
  * CollisionObject. Only the upper triangle is visited (j starts at i + 1),
@@ -534,6 +535,15 @@ void GameEngine::Run()
 
                 graphics->RenderForeground(&mGameContext);
             }
+        }
+
+        // 8. UI pass: HUD content that ignores object transforms. Drawn last
+        //    so it sits on top; the GUI context is never given an offset.
+        for (auto& object : mGameObjects)
+        {
+            mGameContext.CurrObject = object;
+            object->RenderUI(&mGameContext);
+            mGameContext.CurrObject.reset();
         }
 
         mWindow->display();

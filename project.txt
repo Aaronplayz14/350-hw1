@@ -1,0 +1,29 @@
+CMPUT 350 Project 1b - Galaga Prototype
+
+Overview
+This project builds on the Part 1a engine with transformed drawing contexts, Bezier paths, shape-based collision checks, keyboard notifications, and a Galaga-style player/enemy prototype.
+
+Implemented
+- The engine updates, collides, and renders game objects each frame. Bounding rectangles are checked before component shapes.
+- Bezier paths support multiple cubic segments. Enemy path motion uses sampled arc lengths to approximate constant-speed travel.
+- The player registers for movement/shoot notifications (the Galaga manager installs the key bindings) and reports its own destruction. Movement is clamped to the playfield.
+- Bullets use swept line shapes for collision detection, remember their weak parent, and render a collision marker when destroyed.
+- Three enemy variants have distinct visuals, attack paths, health, and point values. Enemies enter formation along Bezier paths and hover deterministically.
+- Enemy destruction sends an EnemyDestroyed notification. Galaga awards the killed enemy's points (doubled when it was destroyed out of formation) and tracks the surviving count.
+
+Current Game Flow and Outstanding Work
+The program entry point adds a single Galaga game-manager object and lets it run. Galaga installs the player key bindings, registers for the player/enemy death notifications, spawns and respawns the player, tracks score and lives, and moves to game over when no lives remain. The remaining Galaga work is to spawn the five waves of eight ships (with their entry Bezier paths), schedule the enemies' attacks during gameplay, and draw the title, level, score, lives, and game-over text. The enemy Attack methods are implemented but are not yet scheduled or called by the manager, so no enemies currently appear. These are known gaps rather than implemented behavior.
+
+Design Notes
+- Collision shapes are defined in each object's local coordinates; the engine applies location and rotation during collision checks and drawing.
+- Bullets keep a weak reference to their parent so they can be removed when the firing object is no longer alive.
+- Enemy paths are sampled by distance and interpolated between samples to reduce Bezier speed changes caused by uneven control-point spacing.
+
+Team Contributions
+Based on the repository commit history, Travis Lee contributed Bezier support, math rotation utilities, and rotation-aware collision processing. Aaron Chiu contributed player/bullet/enemy integration, notification and drawing compatibility changes, and the recent enemy variants and fixes. Both team members should review this summary and adjust it if the actual work split differed.
+
+Extra Credit
+The NotificationManager contains recording and replay primitives, but the current Galaga program does not provide replay controls or integrate playback into a coin/start screen. Keyboard remapping and ship capture are not implemented.
+
+AI Use
+AI assistance was used for portions of the engine-loop and player-movement code, debugging and compilation fixes, enemy implementation, documentation comments, and code review. The team reviewed and remains responsible for the final code.

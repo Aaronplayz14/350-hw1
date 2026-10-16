@@ -26,11 +26,11 @@ class NotificationManager;
 //-----------------------------------------------------------------------
 class GameContext {
 public:
-    EngineView *EngineContext;                      // Engine access (add objects, iterate).
+    EngineView *mEngineView;                        // Engine access (add objects, iterate).
     DrawContext *ScreenContext;                     // Transformed context for gameplay drawing.
     DrawContext *GUIContext;                        // Untransformed context for the HUD.
     std::weak_ptr<GameObject> CurrObject;           // The object being updated/drawn.
-    NotificationManager *Notifications;             // Shared notification manager.
+    NotificationManager *mNotificationManager;      // Shared notification manager.
     int currentFrame = 0;                           // Global frame counter / clock.
 };
 

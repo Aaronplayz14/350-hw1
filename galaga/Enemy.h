@@ -89,6 +89,15 @@ public:
     /// points for an enemy caught outside its formation.
     bool WasInFormationWhenKilled() const;
 
+    /// @brief Returns this kill's score and marks it as collected.
+    ///
+    /// The Galaga manager calls this once per death notification to learn how
+    /// much the enemy was worth. The value is the enemy's base points, doubled
+    /// when it was destroyed outside its formation. Returns 0 if the enemy is
+    /// still alive or its score has already been taken, so a kill can never be
+    /// counted twice.
+    int TakeScore();
+
 protected:
     /**
      * @brief Starts following a Bezier path as an attack run.
@@ -158,6 +167,7 @@ private:
     bool mInFormation;                   // True once the entry path is complete.
     bool mMovingOnPath;                  // True while following a Bezier trajectory.
     bool mWasInFormationWhenKilled;      // Formation state captured in Kill().
+    bool mScoreClaimed;                  // Set once the manager has taken the score.
     float mDistanceAlongTrajectory;      // Arc length covered on the current path.
     float mTrajectoryLength;             // Total arc length of the current path.
     float mMovementSpeed;                // Pixels travelled per frame.

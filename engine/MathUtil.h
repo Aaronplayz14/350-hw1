@@ -230,7 +230,7 @@ struct Line {
     /// @param other The segment to test against this one.
     /// @param crossingPoint Receives the intersection point when they cross.
     /// @return true if the segments cross, false if they do not.
-    bool Crosses(Line other, Point2D &crossingPoint) const {
+    bool Crosses(const Line &other, Point2D &crossingPoint) const {
         Point2D ab = p2 - p1;
         Point2D xy = other.p2 - other.p1;
 
@@ -273,6 +273,10 @@ struct Circle {
 
     Circle(float x, float y, float r) : center(x, y), radius(r) {}
 };
+
+static std::ostream &operator<<(std::ostream &os, const Circle &c) {
+    return os << "(C: " << c.center << ", R: " << c.radius << ")";
+}
 
 //-----------------------------------------------------------------------
 /**

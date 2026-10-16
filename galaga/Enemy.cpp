@@ -53,6 +53,7 @@ Enemy::Enemy(
     mInFormation(!IsValidBezierPath(entryPath)),
     mMovingOnPath(false),
     mWasInFormationWhenKilled(false),
+    mScoreClaimed(false),
     mDistanceAlongTrajectory(0.0f),
     mTrajectoryLength(0.0f),
     mMovementSpeed(kEntrySpeed),
@@ -83,7 +84,7 @@ void Enemy::Initialize(CMPUT350::GameContext* context)
 {
     if (context != nullptr)
     {
-        mNotificationManager = context->Notifications;
+        mNotificationManager = context->mNotificationManager;
         mSelf = context->CurrObject;
     }
 }
@@ -249,6 +250,37 @@ int Enemy::GetPointValue() const
 bool Enemy::WasInFormationWhenKilled() const
 {
     return mWasInFormationWhenKilled;
+}
+
+//-----------------------------------------------------------------------
+/**
+ * @brief Returns this kill's score once, then reports zero.
+ *
+ * EnemyDestroyed carries no payload, so the manager finds the just-killed enemy
+ * through the engine and calls this to read its value. Claiming the score here
+ * keeps a single death from being counted twice if several enemies die in the
+ * same frame. Out-of-formation kills are worth double.
+ *
+ * @return The points this enemy is worth, or 0 if already claimed/alive.
+ */
+//-----------------------------------------------------------------------
+int Enemy::TakeScore()
+{
+    if (mScoreClaimed || mAlive)
+    {
+        return 0;
+    }
+
+    mScoreClaimed = true;
+
+    int value = mPointValue;
+
+    if (!mWasInFormationWhenKilled)
+    {
+        value *= 2;
+    }
+
+    return value;
 }
 //-----------------------------------------------------------------------
 /**
@@ -526,7 +558,7 @@ void Enemy::FireAtTarget(
     float speed
 )
 {
-    if (context == nullptr || context->EngineContext == nullptr || mSelf.expired())
+    if (context == nullptr || context->mEngineView == nullptr || mSelf.expired())
     {
         return;
     }
@@ -548,7 +580,7 @@ void Enemy::FireAtTarget(
         mSelf
     );
 
-    context->EngineContext->AddGameObject(bullet);
+    context->mEngineView->AddGameObject(bullet);
 }
 
 //-----------------------------------------------------------------------

@@ -1,4 +1,6 @@
 #include "Galaga.h"
+#include <memory>
+#include <vector>
 #include "Player.h"
 #include "Enemy.h"
 #include "Stars.h"
@@ -11,7 +13,8 @@ constexpr char kStart[] = "galaga.start";
 }
 
 Galaga::Galaga(unsigned int width, unsigned int height) : mWidth(width), mHeight(height), mAlive(true), mPlayerAlive(false), 
-    mScore(0), mLevel(0), mEnemyCount(0), mExtraLives(3), mCoins(0), mStartFrame(0), mLastAttack(0), state(GameState::Title)
+    mScore(0), mLevel(0), mEnemyCount(0), mExtraLives(3), mCoins(0), mStartFrame(0), mLastAttack(0), state(GameState::Title),
+    mEngine(nullptr)
 {
 }
 
@@ -20,20 +23,35 @@ void Galaga::Initialize(CMPUT350::GameContext* context)
     // The engine sets CurrObject to this player before calling Initialize.
     const std::weak_ptr<CMPUT350::GameObject> self = context->CurrObject;
 
-    if (self.expired() || context->Notifications == nullptr
-        || context->EngineContext == nullptr) {
+    if (self.expired() || context->mNotificationManager == nullptr
+        || context->mEngineView == nullptr) {
         return;
     }
 
-    context->Notifications->Register(self, kCoin);
-    context->Notifications->Register(self, kStart);
-    // TODO: Add enemy death and player death notif registrations
+    context->mNotificationManager->Register(self, kCoin);
+    context->mNotificationManager->Register(self, kStart);
+    context->mNotificationManager->Register(self, Enemy::kDestroyedNotification);
+    context->mNotificationManager->Register(self, Player::kDestroyedNotification);
 
-    context->EngineContext->InstallKeyDownNotification(CMPUT350::Key::Num5, kCoin);
-    context->EngineContext->InstallKeyDownNotification(CMPUT350::Key::Num1, kStart);
-    // TODO: Migrate all InstallKeyNotification commands from other game objects to this object
+    context->mEngineView->InstallKeyDownNotification(CMPUT350::Key::Num5, kCoin);
+    context->mEngineView->InstallKeyDownNotification(CMPUT350::Key::Num1, kStart);
 
-    context->EngineContext->AddGameObject(std::make_shared<Stars>(250, CMPUT350::Rect(0, 0, 768, 1024)));
+    // The manager owns the player's key bindings; the player only listens for
+    // the resulting notifications. A/Left and D/Right are interchangeable.
+    context->mEngineView->InstallKeyDownNotification(CMPUT350::Key::A, Player::kMoveLeftDown);
+    context->mEngineView->InstallKeyUpNotification(CMPUT350::Key::A, Player::kMoveLeftUp);
+    context->mEngineView->InstallKeyDownNotification(CMPUT350::Key::Left, Player::kMoveLeftDown);
+    context->mEngineView->InstallKeyUpNotification(CMPUT350::Key::Left, Player::kMoveLeftUp);
+    context->mEngineView->InstallKeyDownNotification(CMPUT350::Key::D, Player::kMoveRightDown);
+    context->mEngineView->InstallKeyUpNotification(CMPUT350::Key::D, Player::kMoveRightUp);
+    context->mEngineView->InstallKeyDownNotification(CMPUT350::Key::Right, Player::kMoveRightDown);
+    context->mEngineView->InstallKeyUpNotification(CMPUT350::Key::Right, Player::kMoveRightUp);
+    context->mEngineView->InstallKeyDownNotification(CMPUT350::Key::Space, Player::kShoot);
+
+    // Remember the engine so ReceiveNotification can find a just-killed enemy.
+    mEngine = context->mEngineView;
+
+    context->mEngineView->AddGameObject(std::make_shared<Stars>(250, CMPUT350::Rect(0, 0, 768, 1024)));
 }
 
 void Galaga::Update(CMPUT350::GameContext* context)
@@ -50,7 +68,7 @@ void Galaga::Update(CMPUT350::GameContext* context)
 
             // If no player exists spawn player
             if (mPlayerAlive == false) {
-                context->EngineContext->AddGameObject(std::make_shared<Player>(CMPUT350::Point2D(768 / 2, 900)));
+                context->mEngineView->AddGameObject(std::make_shared<Player>(CMPUT350::Point2D(768 / 2, 900)));
                 mPlayerAlive = true;
             }
 
@@ -63,72 +81,33 @@ void Galaga::Update(CMPUT350::GameContext* context)
 
         case GameState::Waves: {
 
-            int spawnFreq = 90; // Interval between wave spawns (30 frames = 1 sec)
-            auto* engine = context->EngineContext;
+            int spawnFreq = 90; // Interval between wave entries (30 frames = 1 sec)
 
-            // TODO: Update add enemy objects with entry paths and enemy types
-
-            // After 1 second spawn Wave 1
+            // Each entry launches one wave of 8 ships, which fly a Bezier path
+            // from off-screen into their formation row. Five waves of 8 make the
+            // 40-enemy formation set in EnterState().
             if (context->currentFrame - mStartFrame == 30) {
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 3, 100)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 4, 100)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 5, 100)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 6, 100)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 3, 200)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 4, 200)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 5, 200)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 6, 200)));
+                SpawnWave(0, context);
             }
 
-            // After 1 + x seconds spawn Wave 2
             if (context->currentFrame - mStartFrame == 30 + spawnFreq) {
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 2, 100)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 7, 100)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 2, 200)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 7, 200)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 2, 300)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 7, 300)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 3, 300)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 6, 300)));
+                SpawnWave(1, context);
             }
 
-            // After 1 + 2x seconds spawn Wave 3
             if (context->currentFrame - mStartFrame == 30 + 2 * spawnFreq) {
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 0, 100)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 1, 100)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 0, 200)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 1, 200)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 0, 300)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 1, 300)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 0, 400)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 1, 400)));
+                SpawnWave(2, context);
             }
 
-            // After 1 + 3x seconds spawn Wave 4
             if (context->currentFrame - mStartFrame == 30 + 3 * spawnFreq) {
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 8, 100)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 9, 100)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 8, 200)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 9, 200)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 8, 300)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 9, 300)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 8, 400)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 9, 400)));
+                SpawnWave(3, context);
             }
 
-            // After 1 + 4x seconds spawn Wave 5          
             if (context->currentFrame - mStartFrame == 30 + 4 * spawnFreq) {
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 4, 300)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 5, 300)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 2, 400)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 3, 400)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 4, 400)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 5, 400)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 6, 400)));
-                // engine->AddGameObject(std::make_shared<Enemy>(CMPUT350::Point2D(78 + 68 * 7, 400)));
+                SpawnWave(4, context);
             }
 
-            // After 1 + 5x seconds enter Gameplay state (TODO: May need to add extra time to ensure last wave in formation before state change)
+            // After the last wave enters, move on to gameplay. (TODO: May need
+            // extra time to ensure the last wave is in formation first.)
             if (context->currentFrame - mStartFrame == 30 + 5 * spawnFreq) {
                 this->EnterState(GameState::Gameplay);
             }
@@ -151,7 +130,7 @@ void Galaga::Update(CMPUT350::GameContext* context)
 
             // If player is dead AND player has an extra life AND time since last attack is greater than max attack length: Spawn player
             if (mPlayerAlive == false && mExtraLives > 0 && context->currentFrame - mLastAttack >= maxAttackLength) {
-                context->EngineContext->AddGameObject(std::make_shared<Player>(CMPUT350::Point2D(768 / 2, 900)));
+                context->mEngineView->AddGameObject(std::make_shared<Player>(CMPUT350::Point2D(768 / 2, 900)));
                 --mExtraLives;
                 mPlayerAlive = true;
             }
@@ -212,18 +191,30 @@ void Galaga::ReceiveNotification(const std::string& notification)
 
         ++mCoins;
 
-    } else if (false) { // TODO: If enemy death
+    } else if (notification == Enemy::kDestroyedNotification) { // Enemy death
 
         // Decrease enemy counter
-        --mEnemyCount;
+        if (mEnemyCount > 0) {
+            --mEnemyCount;
+        }
 
-        // TODO: Find enemy point value
-        int points = 10; // Placeholder
-        
-        // Update score
-        mScore += points; 
+        // The notification carries no payload, so find the enemy that just died
+        // and claim its score. TakeScore() returns 0 once a kill is counted, so
+        // multiple same-frame deaths are each counted exactly once.
+        if (mEngine != nullptr) {
+            for (auto& object : *mEngine) {
+                auto enemy = std::dynamic_pointer_cast<Enemy>(object);
+                if (enemy != nullptr && !enemy->IsAlive()) {
+                    const int points = enemy->TakeScore();
+                    if (points > 0) {
+                        mScore += points;
+                        break;
+                    }
+                }
+            }
+        }
 
-    } else if (false) { // TODO: If player death
+    } else if (notification == Player::kDestroyedNotification) { // Player death
 
         mPlayerAlive = false;
 
@@ -282,4 +273,71 @@ void Galaga::EnterState(GameState newState)
     }
 
     state = newState;
+}
+
+//-----------------------------------------------------------------------
+/**
+ * @brief Launches one wave of eight enemies into its formation row.
+ *
+ * Every enemy is given a cubic Bezier entry path (four control points: an
+ * off-screen start, two handles, and the formation slot) so the engine flies it
+ * into place at a constant rate before it settles into the formation. Even
+ * waves sweep in from the left edge and odd waves from the right, reproducing
+ * the alternating entry of the arcade game. The back rows hold the tougher
+ * enemy types, matching their higher score values.
+ *
+ * @param wave Zero-based row being filled (0 is the top/back row).
+ * @param context The engine's per-frame context.
+ * @return None. The queued enemies are activated on the next frame.
+ */
+//-----------------------------------------------------------------------
+void Galaga::SpawnWave(int wave, CMPUT350::GameContext* context)
+{
+    if (context == nullptr || context->mEngineView == nullptr) {
+        return;
+    }
+
+    constexpr int kShipsPerWave = 8;
+    constexpr float kColumnSpacing = 84.0f;
+    constexpr float kRowSpacing = 80.0f;
+    constexpr float kFormationLeft = 90.0f;
+    constexpr float kFormationTop = 120.0f;
+
+    const float rowY = kFormationTop + kRowSpacing * static_cast<float>(wave);
+    const bool fromLeft = (wave % 2 == 0);
+
+    for (int col = 0; col < kShipsPerWave; ++col) {
+        const CMPUT350::Point2D slot(
+            kFormationLeft + kColumnSpacing * static_cast<float>(col),
+            rowY
+        );
+
+        std::vector<CMPUT350::Point2D> entryPath;
+        if (fromLeft) {
+            entryPath = {
+                CMPUT350::Point2D(-160.0f, slot.y - 260.0f),
+                CMPUT350::Point2D(slot.x - 420.0f, slot.y - 360.0f),
+                CMPUT350::Point2D(slot.x - 150.0f, slot.y - 80.0f),
+                slot
+            };
+        } else {
+            entryPath = {
+                CMPUT350::Point2D(928.0f, slot.y - 260.0f),
+                CMPUT350::Point2D(slot.x + 420.0f, slot.y - 360.0f),
+                CMPUT350::Point2D(slot.x + 150.0f, slot.y - 80.0f),
+                slot
+            };
+        }
+
+        std::shared_ptr<Enemy> enemy;
+        if (wave == 0) {
+            enemy = std::make_shared<EnemyArmored>(slot, entryPath);
+        } else if (wave == 1) {
+            enemy = std::make_shared<EnemyWeaver>(slot, entryPath);
+        } else {
+            enemy = std::make_shared<EnemyScout>(slot, entryPath);
+        }
+
+        context->mEngineView->AddGameObject(enemy);
+    }
 }

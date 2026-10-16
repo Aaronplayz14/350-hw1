@@ -27,8 +27,13 @@ public:
     void EnterState(GameState newState);
 
 private:
+    /// @brief Spawns one wave of 8 ships that fly into their formation row.
+    /// @param wave Zero-based wave/row index (0 is the top row).
+    /// @param context The engine's per-frame context.
+    void SpawnWave(int wave, CMPUT350::GameContext* context);
     bool mAlive, mPlayerAlive;
     unsigned int mScore, mLevel, mEnemyCount, mExtraLives, mCoins, mStartFrame, mLastAttack, mWidth, mHeight;
     GameState state;
+    CMPUT350::EngineView* mEngine; // Cached engine view, used to find killed enemies.
 };
 #endif // GALAGA_H
