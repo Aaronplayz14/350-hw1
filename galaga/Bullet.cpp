@@ -153,13 +153,13 @@ void Bullet::RenderForeground(CMPUT350::GameContext* context)
         return;
     }
 
-    const CMPUT350::RGBColor color = mPlayer ? CMPUT350::Colors::yellow : CMPUT350::Colors::cyan;
+    const CMPUT350::RGBColor color = mPlayer ? CMPUT350::Colors::yellow : CMPUT350::Colors::red;
     if (mDestroyed && mHasCollisionPoint)
     {
         // CollisionPoint is local to this bullet.
         context->ScreenContext->DrawCircle(
             mCollisionPoint,
-            4.0f,
+            8.0f,
             color
         );
     }
@@ -169,7 +169,7 @@ void Bullet::RenderForeground(CMPUT350::GameContext* context)
         // position by it to get the streak's other end.
         const CMPUT350::Point2D previousLocal = mPreviousLocation - mLocation;
 
-        context->ScreenContext->DrawLine(previousLocal, CMPUT350::Point2D(0.0f, 0.0f), 3.0f, color);
+        context->ScreenContext->DrawLine(previousLocal, CMPUT350::Point2D(0.0f, 0.0f), 6.0f, color);
     }
 }
 

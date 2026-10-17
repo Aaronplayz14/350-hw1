@@ -163,41 +163,29 @@ void Galaga::LateUpdate(CMPUT350::GameContext* context)
 
 void Galaga::RenderUI(CMPUT350::GameContext* context)
 {
-    // Draw coin count
-    std::string coinText = "Coins: ";
-    context->GUIContext->DrawCenteredText(coinText + std::to_string(mCoins), 14, CMPUT350::Point2D(mWidth / 2, mHeight - 16), CMPUT350::Colors::white);
+    std::string coinText = "Coins: " + std::to_string(mCoins);
+    context->GUIContext->DrawCenteredText(coinText, 18, CMPUT350::Point2D(mWidth / 2, mHeight - 20), CMPUT350::Colors::white);
 
     if (state == GameState::Title) {
-        // Draw title screen text
-        context->GUIContext->DrawCenteredText("Galuga", 100, CMPUT350::Point2D(mWidth / 2, mHeight / 2 - 50), CMPUT350::Colors::white);
-
-        if (context->currentFrame % 30 < 15) {
+        context->GUIContext->DrawCenteredText("GALAGA", 96, CMPUT350::Point2D(mWidth / 2, mHeight / 2 - 60), CMPUT350::Colors::yellow);
+        if (context->currentFrame % 40 < 20) {
             if (mCoins == 0) {
-                context->GUIContext->DrawCenteredText("Insert Coin [num 5]", 20, CMPUT350::Point2D(mWidth / 2, mHeight / 2 + 50), CMPUT350::Colors::white);
+                context->GUIContext->DrawCenteredText("INSERT COIN [5]", 24, CMPUT350::Point2D(mWidth / 2, mHeight / 2 + 60), CMPUT350::Colors::white);
             } else {
-                context->GUIContext->DrawCenteredText("Start Game [num 1]", 20, CMPUT350::Point2D(mWidth / 2, mHeight / 2 + 50), CMPUT350::Colors::white);
+                context->GUIContext->DrawCenteredText("PRESS 1 TO START", 24, CMPUT350::Point2D(mWidth / 2, mHeight / 2 + 60), CMPUT350::Colors::white);
             }
         }
-
     } else {
-        // Draw score and extra lives
-        std::string scoreText = "Score: ";
-        context->GUIContext->DrawText(scoreText + std::to_string(mScore), 18, CMPUT350::Point2D(15, 15), CMPUT350::Colors::white);
-
-        std::string livesText = "Lives: ";
-        context->GUIContext->DrawText(livesText + std::to_string(mExtraLives), 18, CMPUT350::Point2D(mWidth - 160, 15), CMPUT350::Colors::white);
-
+        context->GUIContext->DrawText("SCORE: " + std::to_string(mScore), 20, CMPUT350::Point2D(16, 16), CMPUT350::Colors::white);
+        context->GUIContext->DrawText("LIVES: " + std::to_string(mExtraLives), 20, CMPUT350::Point2D(mWidth - 150, 16), CMPUT350::Colors::white);
     }
 
     if (state == GameState::Startup) {
-        // Draw level number
-        std::string levelText = "Level ";
-        context->GUIContext->DrawCenteredText(levelText + std::to_string(mLevel), 40, CMPUT350::Point2D(mWidth / 2, mHeight / 2), CMPUT350::Colors::white);
+        context->GUIContext->DrawCenteredText("LEVEL " + std::to_string(mLevel), 48, CMPUT350::Point2D(mWidth / 2, mHeight / 2), CMPUT350::Colors::yellow);
     }
 
     if (state == GameState::GameOver) {
-        // Draw game over text
-        context->GUIContext->DrawCenteredText("Game Over", 40, CMPUT350::Point2D(mWidth / 2, mHeight / 2), CMPUT350::Colors::white);
+        context->GUIContext->DrawCenteredText("GAME OVER", 60, CMPUT350::Point2D(mWidth / 2, mHeight / 2), CMPUT350::Colors::red);
     }
 
 }
