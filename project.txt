@@ -65,11 +65,10 @@ Design Notes
 
 Team Contributions
 Based on repository history, Travis Lee contributed Bezier support, math
-rotation utilities, and rotation-aware collision processing. Aaron Chiu
-contributed player, bullet, and enemy integration, notification and drawing
-compatibility changes, enemy variants, gameplay behavior, and fixes. Both team
-members should review and correct this summary if the actual work split
-differed.
+rotation utilities, rotation-aware collision processing, and game manager 
+structure/behaviour. Aaron Chiu contributed player, bullet, and enemy integration, 
+notification and drawing compatibility changes, enemy variants, game manager fine 
+tuning, and fixes.
 
 AI Use
 AI assistance was used for portions of the engine loop and player movement,
