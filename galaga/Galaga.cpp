@@ -1,14 +1,16 @@
 #include "Galaga.h"
+
 #include <algorithm>
 #include <array>
 #include <memory>
-#include <vector>
 #include <string>
-#include "Player.h"
+#include <vector>
+
 #include "Enemy.h"
-#include "Stars.h"
-#include "NotificationManager.h"
 #include "Keyboard.h"
+#include "NotificationManager.h"
+#include "Player.h"
+#include "Stars.h"
 
 namespace {
 constexpr char kCoin[] = "galaga.coin";
@@ -24,8 +26,7 @@ constexpr int kReplayCoinGraceFrames = 150;
  * @return Notification name used by the keyboard setup screen.
  */
 //-----------------------------------------------------------------------
-std::string RawKeyNotification(unsigned int key)
-{
+std::string RawKeyNotification(unsigned int key) {
     return std::string(kRawKeyPrefix) + std::to_string(key);
 }
 
@@ -36,15 +37,12 @@ std::string RawKeyNotification(unsigned int key)
  * @return A readable key label, or a numeric fallback for unsupported keys.
  */
 //-----------------------------------------------------------------------
-std::string KeyName(unsigned int key)
-{
+std::string KeyName(unsigned int key) {
     static constexpr std::array<const char*, 26> letters = {
         "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
-        "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"
-    };
-    static constexpr std::array<const char*, 10> digits = {
-        "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"
-    };
+        "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"};
+    static constexpr std::array<const char*, 10> digits = {"1", "2", "3", "4", "5",
+                                                           "6", "7", "8", "9", "0"};
 
     if (key < letters.size()) {
         return letters[key];
@@ -54,29 +52,121 @@ std::string KeyName(unsigned int key)
     }
 
     switch (key) {
-        case CMPUT350::Key::Space: return "Space";
-        case CMPUT350::Key::Left: return "Left";
-        case CMPUT350::Key::Right: return "Right";
-        case CMPUT350::Key::Up: return "Up";
-        case CMPUT350::Key::Down: return "Down";
-        case CMPUT350::Key::Enter: return "Enter";
-        case CMPUT350::Key::Escape: return "Escape";
-        case CMPUT350::Key::F1: return "F1";
-        case CMPUT350::Key::F2: return "F2";
-        case CMPUT350::Key::F3: return "F3";
-        case CMPUT350::Key::F4: return "F4";
-        case CMPUT350::Key::F5: return "F5";
-        case CMPUT350::Key::F6: return "F6";
-        case CMPUT350::Key::F7: return "F7";
-        case CMPUT350::Key::F8: return "F8";
-        case CMPUT350::Key::F9: return "F9";
-        case CMPUT350::Key::F10: return "F10";
-        case CMPUT350::Key::F11: return "F11";
-        case CMPUT350::Key::F12: return "F12";
-        default: return "Key " + std::to_string(key);
+        case CMPUT350::Key::Space:
+            return "Space";
+        case CMPUT350::Key::Left:
+            return "Left";
+        case CMPUT350::Key::Right:
+            return "Right";
+        case CMPUT350::Key::Up:
+            return "Up";
+        case CMPUT350::Key::Down:
+            return "Down";
+        case CMPUT350::Key::Enter:
+            return "Enter";
+        case CMPUT350::Key::Escape:
+            return "Escape";
+        case CMPUT350::Key::F1:
+            return "F1";
+        case CMPUT350::Key::F2:
+            return "F2";
+        case CMPUT350::Key::F3:
+            return "F3";
+        case CMPUT350::Key::F4:
+            return "F4";
+        case CMPUT350::Key::F5:
+            return "F5";
+        case CMPUT350::Key::F6:
+            return "F6";
+        case CMPUT350::Key::F7:
+            return "F7";
+        case CMPUT350::Key::F8:
+            return "F8";
+        case CMPUT350::Key::F9:
+            return "F9";
+        case CMPUT350::Key::F10:
+            return "F10";
+        case CMPUT350::Key::F11:
+            return "F11";
+        case CMPUT350::Key::F12:
+            return "F12";
+        default:
+            return "Key " + std::to_string(key);
     }
 }
+
+//-----------------------------------------------------------------------
+/**
+ * @brief Draws centred text wrapped so it always fits the window width.
+ *
+ * The embedded "Press Start 2P" font is monospace: every glyph is exactly
+ * `pixelSize` pixels wide. A long hint drawn as one centred line therefore
+ * runs off both sides of the 768-pixel playfield. This helper honours explicit
+ * '\n' breaks, otherwise wraps whole words to the widest line that fits inside
+ * `maxWidth`, and stacks the resulting lines downward.
+ *
+ * @param gui Drawing context for the UI overlay; must not be null.
+ * @param text Text to show, optionally containing '\n' line breaks.
+ * @param pixelSize Glyph height in pixels, which is also the monospace advance.
+ * @param centerX Horizontal centre shared by every line.
+ * @param firstLineY Vertical centre of the first line.
+ * @param maxWidth Widest line, in pixels, allowed before wrapping.
+ * @param color Fill colour of the glyphs.
+ * @return The vertical centre to use for a line drawn after this block.
+ */
+//-----------------------------------------------------------------------
+float DrawCenteredWrappedText(CMPUT350::DrawContext* gui, const std::string& text, int pixelSize,
+                              float centerX, float firstLineY, float maxWidth,
+                              CMPUT350::RGBColor color) {
+    const int maxChars = std::max(1, static_cast<int>(maxWidth) / pixelSize);
+    const float lineStep = static_cast<float>(pixelSize) * 1.5f;
+
+    float y = firstLineY;
+    std::size_t start = 0;
+    while (start <= text.size()) {
+        const std::size_t hardBreak = text.find('\n', start);
+        const std::string segment = text.substr(
+            start, hardBreak == std::string::npos ? std::string::npos : hardBreak - start);
+
+        std::string line;
+        std::size_t i = 0;
+        while (i < segment.size()) {
+            std::size_t j = i;
+            while (j < segment.size() && segment[j] != ' ') {
+                ++j;
+            }
+            const std::string word = segment.substr(i, j - i);
+            i = j;
+            while (i < segment.size() && segment[i] == ' ') {
+                ++i;
+            }
+            if (word.empty()) {
+                continue;
+            }
+            if (!line.empty() && static_cast<int>(line.size() + 1 + word.size()) > maxChars) {
+                gui->DrawCenteredText(line, pixelSize, CMPUT350::Point2D(centerX, y), color);
+                y += lineStep;
+                line.clear();
+            }
+            if (!line.empty()) {
+                line += " ";
+            }
+            line += word;
+        }
+        if (!line.empty()) {
+            gui->DrawCenteredText(line, pixelSize, CMPUT350::Point2D(centerX, y), color);
+            y += lineStep;
+        }
+
+        if (hardBreak == std::string::npos) {
+            break;
+        }
+        start = hardBreak + 1;
+    }
+
+    return y;
 }
+}  // namespace
 
 //-----------------------------------------------------------------------
 /**
@@ -85,34 +175,32 @@ std::string KeyName(unsigned int key)
  * @param height Playfield height in pixels.
  */
 //-----------------------------------------------------------------------
-Galaga::Galaga(unsigned int width, unsigned int height):
-    mAlive(true),
-    mWidth(width),
-    mHeight(height),
-    mScore(0),
-    mLevel(0),
-    mEnemyCount(0),
-    mExtraLives(2),
-    mCoins(0),
-    mPlayerAlive(false),
-    mResetting(false),
-    mStateStartFrame(-1),
-    mLastAttackElapsed(0),
-    mAttackCounter(0),
-    mWavesSpawned(0),
-    mRespawnFrame(-1),
-    state(GameState::Title),
-    mEngine(nullptr),
-    mNotifications(nullptr),
-    mBindings{CMPUT350::Key::A, CMPUT350::Key::D, CMPUT350::Key::Space},
-    mSetupSelection(0),
-    mWaitingForKey(false),
-    mCustomBindings(false),
-    mSetupStatus(),
-    mReplaying(false),
-    mReplayDone(false)
-{
-}
+Galaga::Galaga(unsigned int width, unsigned int height)
+    : mAlive(true),
+      mWidth(width),
+      mHeight(height),
+      mScore(0),
+      mLevel(0),
+      mEnemyCount(0),
+      mExtraLives(2),
+      mCoins(0),
+      mPlayerAlive(false),
+      mResetting(false),
+      mStateStartFrame(-1),
+      mLastAttackElapsed(0),
+      mAttackCounter(0),
+      mWavesSpawned(0),
+      mRespawnFrame(-1),
+      state(GameState::Title),
+      mEngine(nullptr),
+      mNotifications(nullptr),
+      mBindings{CMPUT350::Key::A, CMPUT350::Key::D, CMPUT350::Key::Space},
+      mSetupSelection(0),
+      mWaitingForKey(false),
+      mCustomBindings(false),
+      mSetupStatus(),
+      mReplaying(false),
+      mReplayDone(false) {}
 
 //-----------------------------------------------------------------------
 /**
@@ -121,13 +209,12 @@ Galaga::Galaga(unsigned int width, unsigned int height):
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Galaga::Initialize(CMPUT350::GameContext* context)
-{
+void Galaga::Initialize(CMPUT350::GameContext* context) {
     // The engine sets CurrObject to this game manager before Initialize.
     const std::weak_ptr<CMPUT350::GameObject> self = context->CurrObject;
 
-    if (self.expired() || context->mNotificationManager == nullptr
-        || context->mEngineView == nullptr) {
+    if (self.expired() || context->mNotificationManager == nullptr ||
+        context->mEngineView == nullptr) {
         return;
     }
 
@@ -137,12 +224,16 @@ void Galaga::Initialize(CMPUT350::GameContext* context)
     context->mNotificationManager->Register(self, kKeySetup);
     context->mNotificationManager->Register(self, Enemy::kDestroyedNotification);
     context->mNotificationManager->Register(self, Player::kDestroyedNotification);
+    for (unsigned int key = 0; key < CMPUT350::Key::ScanCount; ++key) {
+        context->mNotificationManager->Register(self, RawKeyNotification(key));
+    }
 
     // Remember the engine so ReceiveNotification can find a just-killed enemy.
     mEngine = context->mEngineView;
     InstallBindings();
 
-    context->mEngineView->AddGameObject(std::make_shared<Stars>(250, CMPUT350::Rect(0, 0, 768, 1024)));
+    context->mEngineView->AddGameObject(
+        std::make_shared<Stars>(250, CMPUT350::Rect(0, 0, 768, 1024)));
 }
 
 //-----------------------------------------------------------------------
@@ -154,8 +245,7 @@ void Galaga::Initialize(CMPUT350::GameContext* context)
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Galaga::InstallBindings()
-{
+void Galaga::InstallBindings() {
     if (mEngine == nullptr) {
         return;
     }
@@ -166,7 +256,8 @@ void Galaga::InstallBindings()
     mEngine->InstallKeyDownNotification(CMPUT350::Key::F1, kKeySetup);
 
     const int leftKey = static_cast<int>(mBindings[static_cast<std::size_t>(BindAction::MoveLeft)]);
-    const int rightKey = static_cast<int>(mBindings[static_cast<std::size_t>(BindAction::MoveRight)]);
+    const int rightKey =
+        static_cast<int>(mBindings[static_cast<std::size_t>(BindAction::MoveRight)]);
     const int fireKey = static_cast<int>(mBindings[static_cast<std::size_t>(BindAction::Fire)]);
 
     mEngine->InstallKeyDownNotification(leftKey, Player::kMoveLeftDown);
@@ -189,18 +280,14 @@ void Galaga::InstallBindings()
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Galaga::InstallKeySetupBindings()
-{
+void Galaga::InstallKeySetupBindings() {
     if (mEngine == nullptr) {
         return;
     }
 
     mEngine->ClearKeyNotifications();
     for (unsigned int key = 0; key < CMPUT350::Key::ScanCount; ++key) {
-        mEngine->InstallKeyDownNotification(
-            static_cast<int>(key),
-            RawKeyNotification(key)
-        );
+        mEngine->InstallKeyDownNotification(static_cast<int>(key), RawKeyNotification(key));
     }
 }
 
@@ -208,55 +295,60 @@ void Galaga::InstallKeySetupBindings()
 /**
  * @brief Processes a key press while assigning player controls.
  *
- * Reserved and duplicate keys are rejected; Escape cancels an assignment or
- * exits setup.
+ * Arrow keys navigate the actions, Enter starts an assignment, and Escape
+ * returns to the title screen. Reserved and duplicate keys are rejected.
  * @param key Physical key scan code received from the engine.
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Galaga::HandleKeySetupKey(unsigned int key)
-{
+void Galaga::HandleKeySetupKey(unsigned int key) {
     if (key == CMPUT350::Key::Escape) {
-        if (mWaitingForKey) {
-            mWaitingForKey = false;
-            mSetupStatus = "Key assignment cancelled.";
-        } else {
-            EnterState(GameState::Title);
-            InstallBindings();
-        }
+        mWaitingForKey = false;
+        EnterState(GameState::Title);
+        InstallBindings();
         return;
     }
 
-    if (!mWaitingForKey) {
-        if (key >= CMPUT350::Key::Num1 && key <= CMPUT350::Key::Num3) {
-            mSetupSelection = static_cast<int>(key - CMPUT350::Key::Num1);
-            mWaitingForKey = true;
-            static constexpr std::array<const char*, 3> actionNames = {
-                "move left", "move right", "fire"
-            };
-            mSetupStatus = std::string("Press a key for ") +
-                actionNames[static_cast<std::size_t>(mSetupSelection)] + ".";
-        }
-        return;
-    }
-
-    if (key == CMPUT350::Key::Num1 || key == CMPUT350::Key::Num5 ||
-        key == CMPUT350::Key::F1) {
-        mSetupStatus = "That key is reserved for the title screen.";
-        return;
-    }
-
-    for (std::size_t i = 0; i < mBindings.size(); ++i) {
-        if (i != static_cast<std::size_t>(mSetupSelection) && mBindings[i] == key) {
-            mSetupStatus = "That key is already assigned.";
+    if (mWaitingForKey) {
+        if (key == CMPUT350::Key::Up || key == CMPUT350::Key::Down || key == CMPUT350::Key::Enter ||
+            key == CMPUT350::Key::Num1 || key == CMPUT350::Key::Num5 || key == CMPUT350::Key::F1) {
+            mSetupStatus = "That key is reserved for keyboard setup or the title screen.";
             return;
         }
+
+        for (std::size_t i = 0; i < mBindings.size(); ++i) {
+            if (i != static_cast<std::size_t>(mSetupSelection) && mBindings[i] == key) {
+                mSetupStatus = "That key is already assigned.";
+                return;
+            }
+        }
+
+        mBindings[static_cast<std::size_t>(mSetupSelection)] = key;
+        mCustomBindings = true;
+        mWaitingForKey = false;
+        mSetupStatus = "Binding saved. Use Up/Down to select; Enter to change.";
+        return;
     }
 
-    mBindings[static_cast<std::size_t>(mSetupSelection)] = key;
-    mCustomBindings = true;
-    mWaitingForKey = false;
-    mSetupStatus = "Binding saved. Choose another action or press Escape.";
+    if (key == CMPUT350::Key::Up) {
+        mSetupSelection = (mSetupSelection + static_cast<int>(mBindings.size()) - 1) %
+                          static_cast<int>(mBindings.size());
+        mSetupStatus.clear();
+        return;
+    }
+    if (key == CMPUT350::Key::Down) {
+        mSetupSelection = (mSetupSelection + 1) % static_cast<int>(mBindings.size());
+        mSetupStatus.clear();
+        return;
+    }
+    if (key == CMPUT350::Key::Enter) {
+        mWaitingForKey = true;
+        static constexpr std::array<const char*, 3> actionNames = {"Move Left", "Move Right",
+                                                                   "Fire"};
+        mSetupStatus = std::string("Press a key for ") +
+                       actionNames[static_cast<std::size_t>(mSetupSelection)] +
+                       ". Escape returns to the title screen.";
+    }
 }
 
 //-----------------------------------------------------------------------
@@ -267,8 +359,7 @@ void Galaga::HandleKeySetupKey(unsigned int key)
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Galaga::StartNewGame()
-{
+void Galaga::StartNewGame() {
     ClearPlayfield();
     mScore = 0;
     mLevel = 0;
@@ -293,35 +384,27 @@ void Galaga::StartNewGame()
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Galaga::BeginReplay(CMPUT350::GameContext* context)
-{
+void Galaga::BeginReplay(CMPUT350::GameContext* context) {
     if (context == nullptr || mNotifications == nullptr || state != GameState::Title) {
         return;
     }
 
     const auto& events = mNotifications->GetRecordedEvents();
-    const bool hasStartEvent = std::any_of(
-        events.begin(),
-        events.end(),
-        [](const CMPUT350::NotificationManager::RecordedEvent& event) {
-            return event.message == kStart;
-        }
-    );
+    const bool hasStartEvent =
+        std::any_of(events.begin(), events.end(),
+                    [](const CMPUT350::NotificationManager::RecordedEvent& event) {
+                        return event.message == kStart;
+                    });
     if (!hasStartEvent) {
         mReplayDone = true;
         return;
     }
 
-    const bool started = mNotifications->StartReplay(
-        [](const std::string& message) {
-            return message == kStart ||
-                message == Player::kMoveLeftDown ||
-                message == Player::kMoveLeftUp ||
-                message == Player::kMoveRightDown ||
-                message == Player::kMoveRightUp ||
-                message == Player::kShoot;
-        }
-    );
+    const bool started = mNotifications->StartReplay([](const std::string& message) {
+        return message == kStart || message == Player::kMoveLeftDown ||
+               message == Player::kMoveLeftUp || message == Player::kMoveRightDown ||
+               message == Player::kMoveRightUp || message == Player::kShoot;
+    });
     mReplayDone = true;
     if (started) {
         mCoins = 1;
@@ -339,8 +422,7 @@ void Galaga::BeginReplay(CMPUT350::GameContext* context)
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Galaga::Update(CMPUT350::GameContext* context)
-{
+void Galaga::Update(CMPUT350::GameContext* context) {
     if (mStateStartFrame < 0) {
         mStateStartFrame = context->currentFrame;
     }
@@ -374,8 +456,7 @@ void Galaga::Update(CMPUT350::GameContext* context)
             constexpr int waveInterval = 90;
             const int elapsed = context->currentFrame - mStateStartFrame;
 
-            while (mWavesSpawned < 5 &&
-                elapsed >= 30 + waveInterval * mWavesSpawned) {
+            while (mWavesSpawned < 5 && elapsed >= 30 + waveInterval * mWavesSpawned) {
                 SpawnWave(mWavesSpawned, context);
                 ++mWavesSpawned;
             }
@@ -388,7 +469,7 @@ void Galaga::Update(CMPUT350::GameContext* context)
                 this->EnterState(GameState::Gameplay);
             }
 
-            break; 
+            break;
         }
         case GameState::Gameplay: {
             constexpr int attackInterval = 300;
@@ -414,7 +495,7 @@ void Galaga::Update(CMPUT350::GameContext* context)
             }
 
             break;
-        
+
         default:
             break;
     }
@@ -427,15 +508,13 @@ void Galaga::Update(CMPUT350::GameContext* context)
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Galaga::SpawnPlayer(CMPUT350::GameContext* context)
-{
+void Galaga::SpawnPlayer(CMPUT350::GameContext* context) {
     if (context == nullptr || context->mEngineView == nullptr) {
         return;
     }
 
     context->mEngineView->AddGameObject(
-        std::make_shared<Player>(CMPUT350::Point2D(mWidth / 2.0f, 900.0f))
-    );
+        std::make_shared<Player>(CMPUT350::Point2D(mWidth / 2.0f, 900.0f)));
     mPlayerAlive = true;
 }
 
@@ -443,15 +522,13 @@ void Galaga::SpawnPlayer(CMPUT350::GameContext* context)
 /**
  * @brief Selects up to three formation enemies to launch attacks.
  *
- * Attack selection is deterministic; every fourth group can include an
- * armored enemy's capture attempt when an active player is available.
+ * Attack selection is deterministic and launches up to three enemies.
  * Implemented with the help of AI.
  * @param context The current game context used to target and launch attacks.
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Galaga::SelectAttacks(CMPUT350::GameContext* context)
-{
+void Galaga::SelectAttacks(CMPUT350::GameContext* context) {
     if (context == nullptr || mEngine == nullptr || !mPlayerAlive) {
         return;
     }
@@ -468,43 +545,12 @@ void Galaga::SelectAttacks(CMPUT350::GameContext* context)
     }
 
     auto player = PlayerTarget(context);
-    const std::size_t start =
-        static_cast<std::size_t>(mAttackCounter) % candidates.size();
+    const std::size_t start = static_cast<std::size_t>(mAttackCounter) % candidates.size();
     const std::size_t attackCount = std::min<std::size_t>(3, candidates.size());
     std::vector<bool> selected(candidates.size(), false);
     std::size_t launched = 0;
 
-    // Every fourth attack group includes an armored capture attempt when a
-    // controllable player ship and an armored enemy are both available.
-    if (mAttackCounter % 4u == 3u) {
-        bool playerCanBeCaptured = false;
-        for (const auto& object : *mEngine) {
-            const auto candidatePlayer = std::dynamic_pointer_cast<Player>(object);
-            if (candidatePlayer != nullptr && candidatePlayer->IsAlive() &&
-                candidatePlayer->IsActive()) {
-                playerCanBeCaptured = true;
-                player = candidatePlayer->GetLocation();
-                break;
-            }
-        }
-
-        if (playerCanBeCaptured) {
-            for (std::size_t i = 0; i < candidates.size(); ++i) {
-                auto armored = std::dynamic_pointer_cast<EnemyArmored>(candidates[i]);
-                if (armored != nullptr) {
-                    armored->BeginCapture();
-                    if (armored->Attack(context, player)) {
-                        selected[i] = true;
-                        ++launched;
-                    }
-                    break;
-                }
-            }
-        }
-    }
-
-    for (std::size_t offset = 0; offset < candidates.size() &&
-        launched < attackCount; ++offset) {
+    for (std::size_t offset = 0; offset < candidates.size() && launched < attackCount; ++offset) {
         const std::size_t index = (start + offset) % candidates.size();
         if (selected[index]) {
             continue;
@@ -525,8 +571,7 @@ void Galaga::SelectAttacks(CMPUT350::GameContext* context)
  * @return The active player's location or the playfield's bottom-center point.
  */
 //-----------------------------------------------------------------------
-CMPUT350::Point2D Galaga::PlayerTarget(CMPUT350::GameContext* context)
-{
+CMPUT350::Point2D Galaga::PlayerTarget(CMPUT350::GameContext* context) {
     if (context != nullptr && mEngine != nullptr) {
         for (const auto& object : *mEngine) {
             const auto player = std::dynamic_pointer_cast<Player>(object);
@@ -548,8 +593,7 @@ CMPUT350::Point2D Galaga::PlayerTarget(CMPUT350::GameContext* context)
  * @return true if every living enemy is in formation; otherwise false.
  */
 //-----------------------------------------------------------------------
-bool Galaga::AllEnemiesInFormation(CMPUT350::GameContext* context)
-{
+bool Galaga::AllEnemiesInFormation(CMPUT350::GameContext* context) {
     if (context == nullptr || mEngine == nullptr) {
         return false;
     }
@@ -571,10 +615,8 @@ bool Galaga::AllEnemiesInFormation(CMPUT350::GameContext* context)
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Galaga::TryRespawn(CMPUT350::GameContext* context)
-{
-    if (context == nullptr || context->mEngineView == nullptr ||
-        mPlayerAlive || mExtraLives == 0) {
+void Galaga::TryRespawn(CMPUT350::GameContext* context) {
+    if (context == nullptr || context->mEngineView == nullptr || mPlayerAlive || mExtraLives == 0) {
         return;
     }
 
@@ -592,10 +634,7 @@ void Galaga::TryRespawn(CMPUT350::GameContext* context)
     mRespawnFrame = -1;
 }
 
-void Galaga::LateUpdate(CMPUT350::GameContext* context)
-{
-    
-}
+void Galaga::LateUpdate(CMPUT350::GameContext* context) {}
 
 //-----------------------------------------------------------------------
 /**
@@ -604,98 +643,92 @@ void Galaga::LateUpdate(CMPUT350::GameContext* context)
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Galaga::RenderUI(CMPUT350::GameContext* context)
-{
+void Galaga::RenderUI(CMPUT350::GameContext* context) {
     if (context == nullptr || context->GUIContext == nullptr) {
         return;
     }
 
     // Draw coin count
     std::string coinText = "Coins: ";
-    context->GUIContext->DrawCenteredText(coinText + std::to_string(mCoins), 14, CMPUT350::Point2D(mWidth / 2, mHeight - 16), CMPUT350::Colors::white);
+    context->GUIContext->DrawCenteredText(coinText + std::to_string(mCoins), 14,
+                                          CMPUT350::Point2D(mWidth / 2, mHeight - 16),
+                                          CMPUT350::Colors::white);
 
     if (state == GameState::KeySetup) {
         context->GUIContext->DrawCenteredText(
-            "Keyboard Setup",
-            48,
-            CMPUT350::Point2D(mWidth / 2, 160),
-            CMPUT350::Colors::white
-        );
+            "Keyboard Setup", 48, CMPUT350::Point2D(mWidth / 2, 160), CMPUT350::Colors::white);
 
-        static constexpr std::array<const char*, 3> actionNames = {
-            "Move Left", "Move Right", "Fire"
-        };
+        static constexpr std::array<const char*, 3> actionNames = {"Move Left", "Move Right",
+                                                                   "Fire"};
         for (std::size_t i = 0; i < mBindings.size(); ++i) {
-            const std::string line = std::to_string(i + 1) + ". " +
-                actionNames[i] + ": " + KeyName(mBindings[i]);
+            const bool selected = i == static_cast<std::size_t>(mSetupSelection);
+            const std::string line =
+                std::string(selected ? "> " : "  ") + actionNames[i] + ": " + KeyName(mBindings[i]);
             context->GUIContext->DrawCenteredText(
-                line,
-                24,
-                CMPUT350::Point2D(mWidth / 2, 300 + 55 * static_cast<float>(i)),
-                CMPUT350::Colors::white
-            );
+                line, 24, CMPUT350::Point2D(mWidth / 2, 300 + 55 * static_cast<float>(i)),
+                selected ? CMPUT350::Colors::yellow : CMPUT350::Colors::white);
         }
 
-        const std::string prompt = mWaitingForKey
-            ? "Press a key to assign, or Escape to cancel."
-            : "Press 1, 2, or 3 to select an action. Escape returns.";
-        context->GUIContext->DrawCenteredText(
-            prompt,
-            18,
-            CMPUT350::Point2D(mWidth / 2, 530),
-            CMPUT350::Colors::white
-        );
+        const std::string prompt =
+            mWaitingForKey ? "Press a key to assign.\nEscape returns to the title screen."
+                           : "Up/Down: select\nEnter: change key\nEscape: return";
+        const float hintY = DrawCenteredWrappedText(
+            context->GUIContext, prompt, 18, static_cast<float>(mWidth) / 2.0f, 500.0f,
+            static_cast<float>(mWidth), CMPUT350::Colors::white);
         if (!mSetupStatus.empty()) {
-            context->GUIContext->DrawCenteredText(
-                mSetupStatus,
-                18,
-                CMPUT350::Point2D(mWidth / 2, 575),
-                CMPUT350::Colors::yellow
-            );
+            DrawCenteredWrappedText(context->GUIContext, mSetupStatus, 18,
+                                    static_cast<float>(mWidth) / 2.0f, hintY + 10.0f,
+                                    static_cast<float>(mWidth), CMPUT350::Colors::yellow);
         }
         return;
     }
 
     if (state == GameState::Title) {
         // Draw title screen text
-        context->GUIContext->DrawCenteredText("Galuga", 100, CMPUT350::Point2D(mWidth / 2, mHeight / 2 - 50), CMPUT350::Colors::white);
+        context->GUIContext->DrawCenteredText("Galuga", 100,
+                                              CMPUT350::Point2D(mWidth / 2, mHeight / 2 - 50),
+                                              CMPUT350::Colors::white);
 
         if (context->currentFrame % 30 < 15) {
             if (mCoins == 0) {
-                context->GUIContext->DrawCenteredText("Insert Coin [num 5]", 20, CMPUT350::Point2D(mWidth / 2, mHeight / 2 + 50), CMPUT350::Colors::white);
+                context->GUIContext->DrawCenteredText(
+                    "Insert Coin [num 5]", 20, CMPUT350::Point2D(mWidth / 2, mHeight / 2 + 50),
+                    CMPUT350::Colors::white);
             } else {
-                context->GUIContext->DrawCenteredText("Start Game [num 1]", 20, CMPUT350::Point2D(mWidth / 2, mHeight / 2 + 50), CMPUT350::Colors::white);
+                context->GUIContext->DrawCenteredText(
+                    "Start Game [num 1]", 20, CMPUT350::Point2D(mWidth / 2, mHeight / 2 + 50),
+                    CMPUT350::Colors::white);
             }
         }
-        context->GUIContext->DrawCenteredText(
-            "F1: Keyboard Setup",
-            16,
-            CMPUT350::Point2D(mWidth / 2, mHeight / 2 + 100),
-            CMPUT350::Colors::white
-        );
+        context->GUIContext->DrawCenteredText("F1: Keyboard Setup", 16,
+                                              CMPUT350::Point2D(mWidth / 2, mHeight / 2 + 100),
+                                              CMPUT350::Colors::white);
 
     } else {
         // Draw score and extra lives
         std::string scoreText = "Score: ";
-        context->GUIContext->DrawText(scoreText + std::to_string(mScore), 18, CMPUT350::Point2D(15, 15), CMPUT350::Colors::white);
+        context->GUIContext->DrawText(scoreText + std::to_string(mScore), 18,
+                                      CMPUT350::Point2D(15, 15), CMPUT350::Colors::white);
 
         std::string livesText = "Lives: ";
         const unsigned int remainingLives = mExtraLives + (mPlayerAlive ? 1u : 0u);
-        context->GUIContext->DrawText(livesText + std::to_string(remainingLives), 18, CMPUT350::Point2D(mWidth - 160, 15), CMPUT350::Colors::white);
-
+        context->GUIContext->DrawText(livesText + std::to_string(remainingLives), 18,
+                                      CMPUT350::Point2D(mWidth - 160, 15), CMPUT350::Colors::white);
     }
 
     if (state == GameState::Startup) {
         // Draw level number
         std::string levelText = "Level ";
-        context->GUIContext->DrawCenteredText(levelText + std::to_string(mLevel), 40, CMPUT350::Point2D(mWidth / 2, mHeight / 2), CMPUT350::Colors::white);
+        context->GUIContext->DrawCenteredText(levelText + std::to_string(mLevel), 40,
+                                              CMPUT350::Point2D(mWidth / 2, mHeight / 2),
+                                              CMPUT350::Colors::white);
     }
 
     if (state == GameState::GameOver) {
         // Draw game over text
-        context->GUIContext->DrawCenteredText("Game Over", 40, CMPUT350::Point2D(mWidth / 2, mHeight / 2), CMPUT350::Colors::white);
+        context->GUIContext->DrawCenteredText(
+            "Game Over", 40, CMPUT350::Point2D(mWidth / 2, mHeight / 2), CMPUT350::Colors::white);
     }
-
 }
 
 //-----------------------------------------------------------------------
@@ -705,8 +738,7 @@ void Galaga::RenderUI(CMPUT350::GameContext* context)
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Galaga::ReceiveNotification(const std::string& notification)
-{
+void Galaga::ReceiveNotification(const std::string& notification) {
     if (state == GameState::KeySetup) {
         for (unsigned int key = 0; key < CMPUT350::Key::ScanCount; ++key) {
             if (notification == RawKeyNotification(key)) {
@@ -721,21 +753,21 @@ void Galaga::ReceiveNotification(const std::string& notification)
         if (state == GameState::Title) {
             mSetupSelection = 0;
             mWaitingForKey = false;
-            mSetupStatus.clear();
+            mSetupStatus = "Up/Down selects a binding. Enter changes it.";
             EnterState(GameState::KeySetup);
             InstallKeySetupBindings();
         }
         return;
     }
 
-    if (notification == kStart) { // Start game
+    if (notification == kStart) {  // Start game
 
         if (state == GameState::Title && mCoins > 0) {
             --mCoins;
             StartNewGame();
         }
 
-    } else if (notification == kCoin) { // Insert coin
+    } else if (notification == kCoin) {  // Insert coin
 
         if (mReplaying) {
             if (mNotifications != nullptr) {
@@ -752,7 +784,7 @@ void Galaga::ReceiveNotification(const std::string& notification)
             mReplayDone = true;
         }
 
-    } else if (notification == Enemy::kDestroyedNotification) { // Enemy death
+    } else if (notification == Enemy::kDestroyedNotification) {  // Enemy death
 
         if (mResetting) {
             return;
@@ -765,7 +797,7 @@ void Galaga::ReceiveNotification(const std::string& notification)
 
         ClaimEnemyScore();
 
-    } else if (notification == Player::kDestroyedNotification) { // Player death
+    } else if (notification == Player::kDestroyedNotification) {  // Player death
 
         if (mResetting) {
             return;
@@ -777,18 +809,12 @@ void Galaga::ReceiveNotification(const std::string& notification)
         if (mExtraLives == 0) {
             this->EnterState(GameState::GameOver);
         }
-              
     }
 }
 
-bool Galaga::IsAlive() const
-{
-    return mAlive;
-}
+bool Galaga::IsAlive() const { return mAlive; }
 
-void Galaga::Kill()
-{
-}
+void Galaga::Kill() {}
 
 //-----------------------------------------------------------------------
 /**
@@ -797,8 +823,7 @@ void Galaga::Kill()
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Galaga::EnterState(GameState newState)
-{
+void Galaga::EnterState(GameState newState) {
     mStateStartFrame = -1;
 
     switch (newState) {
@@ -822,7 +847,7 @@ void Galaga::EnterState(GameState newState)
             break;
 
         case GameState::Startup:
-            
+
             ++mLevel;
 
             break;
@@ -838,7 +863,7 @@ void Galaga::EnterState(GameState newState)
 
         case GameState::GameOver:
             break;
-        
+
         default:
             break;
     }
@@ -854,8 +879,7 @@ void Galaga::EnterState(GameState newState)
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Galaga::ClearPlayfield()
-{
+void Galaga::ClearPlayfield() {
     if (mEngine == nullptr) {
         mPlayerAlive = false;
         mEnemyCount = 0;
@@ -884,8 +908,7 @@ void Galaga::ClearPlayfield()
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Galaga::ClaimEnemyScore()
-{
+void Galaga::ClaimEnemyScore() {
     if (mEngine == nullptr) {
         return;
     }
@@ -918,8 +941,7 @@ void Galaga::ClaimEnemyScore()
  * @return None. The queued enemies are activated on the next frame.
  */
 //-----------------------------------------------------------------------
-void Galaga::SpawnWave(int wave, CMPUT350::GameContext* context)
-{
+void Galaga::SpawnWave(int wave, CMPUT350::GameContext* context) {
     if (context == nullptr || context->mEngineView == nullptr) {
         return;
     }
@@ -934,26 +956,18 @@ void Galaga::SpawnWave(int wave, CMPUT350::GameContext* context)
     const bool fromLeft = (wave % 2 == 0);
 
     for (int col = 0; col < kShipsPerWave; ++col) {
-        const CMPUT350::Point2D slot(
-            kFormationLeft + kColumnSpacing * static_cast<float>(col),
-            rowY
-        );
+        const CMPUT350::Point2D slot(kFormationLeft + kColumnSpacing * static_cast<float>(col),
+                                     rowY);
 
         std::vector<CMPUT350::Point2D> entryPath;
         if (fromLeft) {
-            entryPath = {
-                CMPUT350::Point2D(-160.0f, slot.y - 260.0f),
-                CMPUT350::Point2D(slot.x - 420.0f, slot.y - 360.0f),
-                CMPUT350::Point2D(slot.x - 150.0f, slot.y - 80.0f),
-                slot
-            };
+            entryPath = {CMPUT350::Point2D(-160.0f, slot.y - 260.0f),
+                         CMPUT350::Point2D(slot.x - 420.0f, slot.y - 360.0f),
+                         CMPUT350::Point2D(slot.x - 150.0f, slot.y - 80.0f), slot};
         } else {
-            entryPath = {
-                CMPUT350::Point2D(928.0f, slot.y - 260.0f),
-                CMPUT350::Point2D(slot.x + 420.0f, slot.y - 360.0f),
-                CMPUT350::Point2D(slot.x + 150.0f, slot.y - 80.0f),
-                slot
-            };
+            entryPath = {CMPUT350::Point2D(928.0f, slot.y - 260.0f),
+                         CMPUT350::Point2D(slot.x + 420.0f, slot.y - 360.0f),
+                         CMPUT350::Point2D(slot.x + 150.0f, slot.y - 80.0f), slot};
         }
 
         std::shared_ptr<Enemy> enemy;

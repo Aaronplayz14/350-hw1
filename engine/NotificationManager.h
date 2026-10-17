@@ -1,8 +1,8 @@
 #ifndef NOTIFICATION_MANAGER_H
 #define NOTIFICATION_MANAGER_H
 
-#include <memory>
 #include <functional>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>

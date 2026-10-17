@@ -1,8 +1,9 @@
+#include "Enemy.h"
+
 #include <algorithm>
 #include <cmath>
 #include <utility>
 
-#include "Enemy.h"
 #include "Bullet.h"
 #include "NotificationManager.h"
 #include "Player.h"
@@ -15,18 +16,12 @@ constexpr float kScoutAttackSpeed = 7.5f;
 constexpr float kWeaverAttackSpeed = 5.5f;
 constexpr float kArmoredAttackSpeed = 4.5f;
 constexpr int kSamplesPerBezierSegment = 40;
-// How close the player must be for a capture run to grab it. This is slightly
-// larger than the combined collision radii so the grab happens before the two
-// objects are registered as colliding.
-constexpr float kCaptureRange = 42.0f;
-
 // The Bezier implementation requires 3*n + 1 control points.
-bool IsValidBezierPath(const std::vector<CMPUT350::Point2D>& points)
-{
+bool IsValidBezierPath(const std::vector<CMPUT350::Point2D>& points) {
     return points.size() >= 4 && (points.size() - 1) % 3 == 0;
 }
 
-} // namespace
+}  // namespace
 //-----------------------------------------------------------------------
 /**
  * @brief Creates an enemy with a formation position, entry path, health, and score value.
@@ -43,35 +38,28 @@ bool IsValidBezierPath(const std::vector<CMPUT350::Point2D>& points)
  * @param pointValue Score value assigned to this enemy type.
  */
 //-----------------------------------------------------------------------
-Enemy::Enemy(
-    CMPUT350::Point2D formationLocation,
-    const std::vector<CMPUT350::Point2D>& entryPath,
-    int health,
-    int pointValue
-):
-    mLoc(IsValidBezierPath(entryPath) ? entryPath.front() : formationLocation),
-    mFormationLocation(formationLocation),
-    mRotation(0.0f),
-    mBounds(mLoc - kEnemyRadius, 2.0f * kEnemyRadius, 2.0f * kEnemyRadius),
-    mAlive(true),
-    mHealth(std::max(1, health)),
-    mMaxHealth(std::max(1, health)),
-    mPointValue(std::max(0, pointValue)),
-    mInFormation(!IsValidBezierPath(entryPath)),
-    mMovingOnPath(false),
-    mWasInFormationWhenKilled(false),
-    mScoreClaimed(false),
-    mDistanceAlongTrajectory(0.0f),
-    mTrajectoryLength(0.0f),
-    mMovementSpeed(kEntrySpeed),
-    mTrajectoryEnd(formationLocation),
-    mTrajectoryPurpose(TrajectoryPurpose::EnterFormation),
-    mNotificationManager(nullptr),
-    mCaptureAttempt(false)
-{
+Enemy::Enemy(CMPUT350::Point2D formationLocation, const std::vector<CMPUT350::Point2D>& entryPath,
+             int health, int pointValue)
+    : mLoc(IsValidBezierPath(entryPath) ? entryPath.front() : formationLocation),
+      mFormationLocation(formationLocation),
+      mRotation(0.0f),
+      mBounds(mLoc - kEnemyRadius, 2.0f * kEnemyRadius, 2.0f * kEnemyRadius),
+      mAlive(true),
+      mHealth(std::max(1, health)),
+      mMaxHealth(std::max(1, health)),
+      mPointValue(std::max(0, pointValue)),
+      mInFormation(!IsValidBezierPath(entryPath)),
+      mMovingOnPath(false),
+      mWasInFormationWhenKilled(false),
+      mScoreClaimed(false),
+      mDistanceAlongTrajectory(0.0f),
+      mTrajectoryLength(0.0f),
+      mMovementSpeed(kEntrySpeed),
+      mTrajectoryEnd(formationLocation),
+      mTrajectoryPurpose(TrajectoryPurpose::EnterFormation),
+      mNotificationManager(nullptr) {
     mShapes.push_back(CMPUT350::Shape(CMPUT350::Circle(0.0f, 0.0f, kEnemyRadius)));
-    if (IsValidBezierPath(entryPath))
-    {
+    if (IsValidBezierPath(entryPath)) {
         StartTrajectory(entryPath, kEntrySpeed, TrajectoryPurpose::EnterFormation);
     }
 }
@@ -88,10 +76,8 @@ Enemy::Enemy(
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Enemy::Initialize(CMPUT350::GameContext* context)
-{
-    if (context != nullptr)
-    {
+void Enemy::Initialize(CMPUT350::GameContext* context) {
+    if (context != nullptr) {
         mNotificationManager = context->mNotificationManager;
         mSelf = context->CurrObject;
     }
@@ -111,24 +97,18 @@ void Enemy::Initialize(CMPUT350::GameContext* context)
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Enemy::Update(CMPUT350::GameContext* context)
-{
-    if (!mAlive)
-    {
+void Enemy::Update(CMPUT350::GameContext* context) {
+    if (!mAlive) {
         return;
     }
 
-    if (mMovingOnPath)
-    {
+    if (mMovingOnPath) {
         AdvanceTrajectory();
     }
 
     // Formation movement is shared by all enemy types.
-    if (mInFormation && !mMovingOnPath)
-    {
-        const float frame = context != nullptr
-            ? static_cast<float>(context->currentFrame)
-            : 0.0f;
+    if (mInFormation && !mMovingOnPath) {
+        const float frame = context != nullptr ? static_cast<float>(context->currentFrame) : 0.0f;
 
         // Use position as a deterministic phase offset so ships do not
         // all hover in exactly the same way.
@@ -141,36 +121,16 @@ void Enemy::Update(CMPUT350::GameContext* context)
         mRotation = 0.0f;
     }
 
-    // A capture run takes the player as soon as it comes within range. Doing
-    // this in Update means the ship is already flagged as captured before the
-    // engine resolves collisions, so the ram check below cannot kill it.
-    if (mCaptureAttempt && mCapturedPlayer.expired())
-    {
-        TryCapture(context);
-    }
-
     mBounds = CMPUT350::Rect(mLoc - kEnemyRadius, 2.0f * kEnemyRadius, 2.0f * kEnemyRadius);
 }
 
-void Enemy::LateUpdate(CMPUT350::GameContext* context)
-{
-    (void)context;
-}
+void Enemy::LateUpdate(CMPUT350::GameContext* context) { (void)context; }
 
-void Enemy::RenderBackground(CMPUT350::GameContext* context)
-{
-    (void)context;
-}
+void Enemy::RenderBackground(CMPUT350::GameContext* context) { (void)context; }
 
-CMPUT350::Point2D Enemy::GetLocation() const
-{
-    return mLoc;
-}
+CMPUT350::Point2D Enemy::GetLocation() const { return mLoc; }
 
-float Enemy::GetRotation() const
-{
-    return mRotation;
-}
+float Enemy::GetRotation() const { return mRotation; }
 
 //-----------------------------------------------------------------------
 /**
@@ -185,27 +145,16 @@ float Enemy::GetRotation() const
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Enemy::CollisionEnter(const std::shared_ptr<CMPUT350::CollisionObject>& obj)
-{
-    if (!mAlive)
-    {
+void Enemy::CollisionEnter(const std::shared_ptr<CMPUT350::CollisionObject>& obj) {
+    if (!mAlive) {
         return;
     }
-    if (std::dynamic_pointer_cast<Player>(obj) != nullptr)
-    {
-        // While running a capture (or holding a ship) the enemy must not ram
-        // the player: the grab is handled in Update, and once the ship is
-        // captured it is this enemy's prize rather than a collision.
-        if (IsCapturing())
-        {
-            return;
-        }
+    if (std::dynamic_pointer_cast<Player>(obj) != nullptr) {
         Kill();
         return;
     }
     const auto bullet = std::dynamic_pointer_cast<Bullet>(obj);
-    if (bullet != nullptr && bullet->IsPlayerBullet())
-    {
+    if (bullet != nullptr && bullet->IsPlayerBullet()) {
         ApplyDamage();
     }
 }
@@ -220,69 +169,34 @@ void Enemy::CollisionEnter(const std::shared_ptr<CMPUT350::CollisionObject>& obj
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Enemy::Kill()
-{
-    if (!mAlive)
-    {
+void Enemy::Kill() {
+    if (!mAlive) {
         return;
     }
 
     mWasInFormationWhenKilled = IsInFormation();
     mAlive = false;
 
-    // If this enemy was holding the player's ship, the capture is broken and
-    // the freed fighter returns as a double ship (extra credit).
-    if (auto player = mCapturedPlayer.lock())
-    {
-        player->Release(true);
-    }
-    mCapturedPlayer.reset();
-
-    if (mNotificationManager != nullptr)
-    {
+    if (mNotificationManager != nullptr) {
         mNotificationManager->Notify(kDestroyedNotification);
     }
 }
 
-bool Enemy::IsAlive() const
-{
-    return mAlive;
-}
+bool Enemy::IsAlive() const { return mAlive; }
 
-const CMPUT350::Rect& Enemy::GetBounds()
-{
-    return mBounds;
-}
+const CMPUT350::Rect& Enemy::GetBounds() { return mBounds; }
 
-const std::vector<CMPUT350::Shape>& Enemy::GetShapes()
-{
-    return mShapes;
-}
+const std::vector<CMPUT350::Shape>& Enemy::GetShapes() { return mShapes; }
 
-bool Enemy::IsInFormation() const
-{
-    return mInFormation && !mMovingOnPath;
-}
+bool Enemy::IsInFormation() const { return mInFormation && !mMovingOnPath; }
 
-int Enemy::GetHealth() const
-{
-    return mHealth;
-}
+int Enemy::GetHealth() const { return mHealth; }
 
-int Enemy::GetMaxHealth() const
-{
-    return mMaxHealth;
-}
+int Enemy::GetMaxHealth() const { return mMaxHealth; }
 
-int Enemy::GetPointValue() const
-{
-    return mPointValue;
-}
+int Enemy::GetPointValue() const { return mPointValue; }
 
-bool Enemy::WasInFormationWhenKilled() const
-{
-    return mWasInFormationWhenKilled;
-}
+bool Enemy::WasInFormationWhenKilled() const { return mWasInFormationWhenKilled; }
 
 //-----------------------------------------------------------------------
 /**
@@ -296,10 +210,8 @@ bool Enemy::WasInFormationWhenKilled() const
  * @return The points this enemy is worth, or 0 if already claimed/alive.
  */
 //-----------------------------------------------------------------------
-int Enemy::TakeScore()
-{
-    if (mScoreClaimed || mAlive)
-    {
+int Enemy::TakeScore() {
+    if (mScoreClaimed || mAlive) {
         return 0;
     }
 
@@ -307,92 +219,13 @@ int Enemy::TakeScore()
 
     int value = mPointValue;
 
-    if (!mWasInFormationWhenKilled)
-    {
+    if (!mWasInFormationWhenKilled) {
         value *= 2;
     }
 
     return value;
 }
 
-//-----------------------------------------------------------------------
-/**
- * @brief Flags the next attack as a capture run (extra credit).
- *
- * The manager calls this immediately before Attack so the enemy knows to aim at
- * the player and to grab the ship on contact rather than ramming it.
- * @return None.
- */
-//-----------------------------------------------------------------------
-void Enemy::BeginCapture()
-{
-    mCaptureAttempt = true;
-}
-
-//-----------------------------------------------------------------------
-/**
- * @brief Reports whether this enemy is on a capture run or holding a ship.
- * @return true if a capture has been requested or a ship is being held.
- */
-//-----------------------------------------------------------------------
-bool Enemy::IsCaptureAttempt() const
-{
-    return mCaptureAttempt;
-}
-
-//-----------------------------------------------------------------------
-/**
- * @brief Reports whether the capture logic should override normal ramming.
- * @return true while attempting to capture or already holding a ship.
- */
-//-----------------------------------------------------------------------
-bool Enemy::IsCapturing() const
-{
-    return mCaptureAttempt || !mCapturedPlayer.expired();
-}
-
-//-----------------------------------------------------------------------
-/**
- * @brief Grabs the player's ship when it is close enough (extra credit).
- *
- * The engine is searched for the active player (the ship can only be captured
- * while under player control). If the ship is within the capture radius it is
- * told to follow this enemy, and the enemy remembers it weakly so that freeing
- * or destroying it later can be handled cleanly. The search stops after the
- * first successful grab.
- * @param context Supplies the engine used to find the player.
- * @return None.
- */
-//-----------------------------------------------------------------------
-void Enemy::TryCapture(CMPUT350::GameContext* context)
-{
-    if (context == nullptr || context->mEngineView == nullptr)
-    {
-        return;
-    }
-
-    for (auto it = context->mEngineView->begin();
-         it != context->mEngineView->end();
-         ++it)
-    {
-        auto player = std::dynamic_pointer_cast<Player>(*it);
-
-        if (player == nullptr || !player->IsAlive() || !player->IsActive())
-        {
-            continue;
-        }
-
-        if (player->GetLocation().Distance(mLoc) <= kCaptureRange)
-        {
-            player->CaptureBy(mSelf);
-            mCapturedPlayer = player;
-
-            // The grab succeeded, so no further capture attempts are needed.
-            mCaptureAttempt = false;
-            break;
-        }
-    }
-}
 //-----------------------------------------------------------------------
 /**
  * @brief Begins an attack by following a Bezier curve.
@@ -405,10 +238,8 @@ void Enemy::TryCapture(CMPUT350::GameContext* context)
  * @return true if the attack started, false otherwise.
  */
 //-----------------------------------------------------------------------
-bool Enemy::BeginAttackPath(const std::vector<CMPUT350::Point2D>& path, float speed)
-{
-    if (!mAlive || !IsInFormation())
-    {
+bool Enemy::BeginAttackPath(const std::vector<CMPUT350::Point2D>& path, float speed) {
+    if (!mAlive || !IsInFormation()) {
         return false;
     }
 
@@ -431,22 +262,16 @@ bool Enemy::BeginAttackPath(const std::vector<CMPUT350::Point2D>& path, float sp
  * @return true if a usable trajectory was built, false for a degenerate path.
  */
 //-----------------------------------------------------------------------
-bool Enemy::StartTrajectory(
-    const std::vector<CMPUT350::Point2D>& path,
-    float speed,
-    TrajectoryPurpose purpose
-)
-{
-    if (!IsValidBezierPath(path))
-    {
+bool Enemy::StartTrajectory(const std::vector<CMPUT350::Point2D>& path, float speed,
+                            TrajectoryPurpose purpose) {
+    if (!IsValidBezierPath(path)) {
         return false;
     }
 
     auto trajectory = std::make_unique<CMPUT350::Bezier>(path);
 
     const std::size_t segmentCount = (path.size() - 1) / 3;
-    const std::size_t sampleCount =
-        segmentCount * kSamplesPerBezierSegment;
+    const std::size_t sampleCount = segmentCount * kSamplesPerBezierSegment;
 
     std::vector<float> parameters;
     std::vector<float> distances;
@@ -457,16 +282,12 @@ bool Enemy::StartTrajectory(
     float totalDistance = 0.0f;
     CMPUT350::Point2D previousPoint = trajectory->GetPoint(0.0f);
 
-    for (std::size_t i = 0; i <= sampleCount; ++i)
-    {
-        const float t =
-            static_cast<float>(i) /
-            static_cast<float>(kSamplesPerBezierSegment);
+    for (std::size_t i = 0; i <= sampleCount; ++i) {
+        const float t = static_cast<float>(i) / static_cast<float>(kSamplesPerBezierSegment);
 
         const CMPUT350::Point2D point = trajectory->GetPoint(t);
 
-        if (i > 0)
-        {
+        if (i > 0) {
             totalDistance += previousPoint.Distance(point);
         }
 
@@ -476,8 +297,7 @@ bool Enemy::StartTrajectory(
         previousPoint = point;
     }
 
-    if (totalDistance <= 0.001f)
-    {
+    if (totalDistance <= 0.001f) {
         return false;
     }
 
@@ -511,21 +331,16 @@ bool Enemy::StartTrajectory(
  * @return None. May start a new trajectory or clear the current one.
  */
 //-----------------------------------------------------------------------
-void Enemy::AdvanceTrajectory()
-{
-    if (!mTrajectory || !mMovingOnPath)
-    {
+void Enemy::AdvanceTrajectory() {
+    if (!mTrajectory || !mMovingOnPath) {
         return;
     }
 
-    mDistanceAlongTrajectory = std::min(
-        mDistanceAlongTrajectory + mMovementSpeed,
-        mTrajectoryLength
-    );
+    mDistanceAlongTrajectory =
+        std::min(mDistanceAlongTrajectory + mMovementSpeed, mTrajectoryLength);
 
     // Finish the active curve when its length has been traversed.
-    if (mDistanceAlongTrajectory >= mTrajectoryLength)
-    {
+    if (mDistanceAlongTrajectory >= mTrajectoryLength) {
         const TrajectoryPurpose completedPurpose = mTrajectoryPurpose;
         const float returnSpeed = mMovementSpeed;
 
@@ -539,16 +354,13 @@ void Enemy::AdvanceTrajectory()
         mTrajectoryLength = 0.0f;
         mMovingOnPath = false;
 
-        if (completedPurpose == TrajectoryPurpose::Attack)
-        {
+        if (completedPurpose == TrajectoryPurpose::Attack) {
             // The attack is over but the enemy is not in formation yet, so send
             // it back to its slot on a fresh curve.
             mInFormation = false;
 
             BeginReturnToFormation(returnSpeed);
-        }
-        else
-        {
+        } else {
             // Entry and return paths finish at the formation location.
             mLoc = mFormationLocation;
             mRotation = 0.0f;
@@ -559,41 +371,29 @@ void Enemy::AdvanceTrajectory()
     }
 
     // Find the two samples surrounding the target distance.
-    const auto upper = std::lower_bound(
-        mTrajectoryDistanceSamples.begin(),
-        mTrajectoryDistanceSamples.end(),
-        mDistanceAlongTrajectory
-    );
+    const auto upper = std::lower_bound(mTrajectoryDistanceSamples.begin(),
+                                        mTrajectoryDistanceSamples.end(), mDistanceAlongTrajectory);
 
-    const std::size_t highIndex = static_cast<std::size_t>(
-        upper - mTrajectoryDistanceSamples.begin()
-    );
+    const std::size_t highIndex =
+        static_cast<std::size_t>(upper - mTrajectoryDistanceSamples.begin());
 
-    if (highIndex == 0)
-    {
-        mLoc = mTrajectory->GetPoint(
-            mTrajectoryParameterSamples.front()
-        );
+    if (highIndex == 0) {
+        mLoc = mTrajectory->GetPoint(mTrajectoryParameterSamples.front());
         return;
     }
 
     const std::size_t lowIndex = highIndex - 1;
 
-    const float lowDistance =
-        mTrajectoryDistanceSamples[lowIndex];
+    const float lowDistance = mTrajectoryDistanceSamples[lowIndex];
 
-    const float highDistance =
-        mTrajectoryDistanceSamples[highIndex];
+    const float highDistance = mTrajectoryDistanceSamples[highIndex];
 
     const float distanceSpan = highDistance - lowDistance;
 
     float fraction = 0.0f;
 
-    if (distanceSpan > 0.0001f)
-    {
-        fraction =
-            (mDistanceAlongTrajectory - lowDistance) /
-            distanceSpan;
+    if (distanceSpan > 0.0001f) {
+        fraction = (mDistanceAlongTrajectory - lowDistance) / distanceSpan;
     }
 
     const float lowT = mTrajectoryParameterSamples[lowIndex];
@@ -606,8 +406,7 @@ void Enemy::AdvanceTrajectory()
     // Face along the direction of travel.
     const CMPUT350::Point2D slope = mTrajectory->GetSlope(t);
 
-    if (slope.Distance(CMPUT350::Point2D(0.0f, 0.0f)) > 0.0001f)
-    {
+    if (slope.Distance(CMPUT350::Point2D(0.0f, 0.0f)) > 0.0001f) {
         mRotation = std::atan2(slope.y, slope.x);
     }
 }
@@ -624,10 +423,8 @@ void Enemy::AdvanceTrajectory()
  *         already in formation, already moving, or dead.
  */
 //-----------------------------------------------------------------------
-bool Enemy::BeginReturnToFormation(float speed)
-{
-    if (!mAlive || mInFormation || mMovingOnPath)
-    {
+bool Enemy::BeginReturnToFormation(float speed) {
+    if (!mAlive || mInFormation || mMovingOnPath) {
         return false;
     }
 
@@ -636,17 +433,9 @@ bool Enemy::BeginReturnToFormation(float speed)
 
     // A cubic curve that arcs back toward the formation.
     const std::vector<CMPUT350::Point2D> returnPath = {
-        start,
-        start + CMPUT350::Point2D(0.0f, -80.0f),
-        end + CMPUT350::Point2D(0.0f, 80.0f),
-        end
-    };
+        start, start + CMPUT350::Point2D(0.0f, -80.0f), end + CMPUT350::Point2D(0.0f, 80.0f), end};
 
-    return StartTrajectory(
-        returnPath,
-        speed,
-        TrajectoryPurpose::ReturnToFormation
-    );
+    return StartTrajectory(returnPath, speed, TrajectoryPurpose::ReturnToFormation);
 }
 
 //-----------------------------------------------------------------------
@@ -663,33 +452,22 @@ bool Enemy::BeginReturnToFormation(float speed)
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Enemy::FireAtTarget(
-    CMPUT350::GameContext* context,
-    const CMPUT350::Point2D& target,
-    float speed
-)
-{
-    if (context == nullptr || context->mEngineView == nullptr || mSelf.expired())
-    {
+void Enemy::FireAtTarget(CMPUT350::GameContext* context, const CMPUT350::Point2D& target,
+                         float speed) {
+    if (context == nullptr || context->mEngineView == nullptr || mSelf.expired()) {
         return;
     }
 
     CMPUT350::Vector2D direction = target - mLoc;
 
-    if (direction.Distance(CMPUT350::Point2D(0.0f, 0.0f)) <= 0.001f)
-    {
+    if (direction.Distance(CMPUT350::Point2D(0.0f, 0.0f)) <= 0.001f) {
         return;
     }
 
     direction.Normalize();
     direction *= std::max(speed, 0.1f);
 
-    auto bullet = std::make_shared<Bullet>(
-        mLoc,
-        direction,
-        false,
-        mSelf
-    );
+    auto bullet = std::make_shared<Bullet>(mLoc, direction, false, mSelf);
 
     context->mEngineView->AddGameObject(bullet);
 }
@@ -700,17 +478,14 @@ void Enemy::FireAtTarget(
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Enemy::ApplyDamage()
-{
-    if (!mAlive)
-    {
+void Enemy::ApplyDamage() {
+    if (!mAlive) {
         return;
     }
 
     --mHealth;
 
-    if (mHealth <= 0)
-    {
+    if (mHealth <= 0) {
         Kill();
     }
 }
@@ -723,12 +498,8 @@ void Enemy::ApplyDamage()
  * @return None.
  */
 //-----------------------------------------------------------------------
-EnemyScout::EnemyScout(
-    CMPUT350::Point2D loc,
-    const std::vector<CMPUT350::Point2D>& entryPath
-): Enemy(loc, entryPath, 1, 100)
-{
-}
+EnemyScout::EnemyScout(CMPUT350::Point2D loc, const std::vector<CMPUT350::Point2D>& entryPath)
+    : Enemy(loc, entryPath, 1, 100) {}
 
 //-----------------------------------------------------------------------
 /**
@@ -741,22 +512,13 @@ EnemyScout::EnemyScout(
  * @return true if the dive started, false if the scout was not in formation.
  */
 //-----------------------------------------------------------------------
-bool EnemyScout::Attack(
-    CMPUT350::GameContext* context,
-    const CMPUT350::Point2D& target
-)
-{
+bool EnemyScout::Attack(CMPUT350::GameContext* context, const CMPUT350::Point2D& target) {
     const CMPUT350::Point2D start = GetLocation();
     const CMPUT350::Point2D end = target + CMPUT350::Point2D(0.0f, 110.0f);
-    const std::vector<CMPUT350::Point2D> path = {
-        start,
-        start + CMPUT350::Point2D(-35.0f, 100.0f),
-        end + CMPUT350::Point2D(35.0f, -100.0f),
-        end
-    };
+    const std::vector<CMPUT350::Point2D> path = {start, start + CMPUT350::Point2D(-35.0f, 100.0f),
+                                                 end + CMPUT350::Point2D(35.0f, -100.0f), end};
 
-    if (!BeginAttackPath(path, kScoutAttackSpeed))
-    {
+    if (!BeginAttackPath(path, kScoutAttackSpeed)) {
         return false;
     }
     FireAtTarget(context, target, 6.0f);
@@ -770,16 +532,13 @@ bool EnemyScout::Attack(
  * @return None.
  */
 //-----------------------------------------------------------------------
-void EnemyScout::RenderForeground(CMPUT350::GameContext* context)
-{
-    if (context == nullptr || context->ScreenContext == nullptr || !IsAlive())
-    {
+void EnemyScout::RenderForeground(CMPUT350::GameContext* context) {
+    if (context == nullptr || context->ScreenContext == nullptr || !IsAlive()) {
         return;
     }
 
-    const auto color = GetHealth() < GetMaxHealth()
-        ? CMPUT350::Colors::yellow
-        : CMPUT350::Colors::cyan;
+    const auto color =
+        GetHealth() < GetMaxHealth() ? CMPUT350::Colors::yellow : CMPUT350::Colors::cyan;
     context->ScreenContext->DrawLine({-15.0f, -10.0f}, {0.0f, 15.0f}, 3.0f, color);
     context->ScreenContext->DrawLine({0.0f, 15.0f}, {15.0f, -10.0f}, 3.0f, color);
     context->ScreenContext->DrawLine({15.0f, -10.0f}, {-15.0f, -10.0f}, 3.0f, color);
@@ -793,12 +552,8 @@ void EnemyScout::RenderForeground(CMPUT350::GameContext* context)
  * @return None.
  */
 //-----------------------------------------------------------------------
-EnemyWeaver::EnemyWeaver(
-    CMPUT350::Point2D loc,
-    const std::vector<CMPUT350::Point2D>& entryPath
-): Enemy(loc, entryPath, 1, 150)
-{
-}
+EnemyWeaver::EnemyWeaver(CMPUT350::Point2D loc, const std::vector<CMPUT350::Point2D>& entryPath)
+    : Enemy(loc, entryPath, 1, 150) {}
 
 //-----------------------------------------------------------------------
 /**
@@ -811,22 +566,13 @@ EnemyWeaver::EnemyWeaver(
  * @return true if the pass started, false if the weaver was not in formation.
  */
 //-----------------------------------------------------------------------
-bool EnemyWeaver::Attack(
-    CMPUT350::GameContext* context,
-    const CMPUT350::Point2D& target
-)
-{
+bool EnemyWeaver::Attack(CMPUT350::GameContext* context, const CMPUT350::Point2D& target) {
     const CMPUT350::Point2D start = GetLocation();
     const CMPUT350::Point2D end = target + CMPUT350::Point2D(90.0f, 130.0f);
-    const std::vector<CMPUT350::Point2D> path = {
-        start,
-        start + CMPUT350::Point2D(130.0f, 80.0f),
-        end + CMPUT350::Point2D(-130.0f, -120.0f),
-        end
-    };
+    const std::vector<CMPUT350::Point2D> path = {start, start + CMPUT350::Point2D(130.0f, 80.0f),
+                                                 end + CMPUT350::Point2D(-130.0f, -120.0f), end};
 
-    if (!BeginAttackPath(path, kWeaverAttackSpeed))
-    {
+    if (!BeginAttackPath(path, kWeaverAttackSpeed)) {
         return false;
     }
     FireAtTarget(context, target, 4.5f);
@@ -840,16 +586,13 @@ bool EnemyWeaver::Attack(
  * @return None.
  */
 //-----------------------------------------------------------------------
-void EnemyWeaver::RenderForeground(CMPUT350::GameContext* context)
-{
-    if (context == nullptr || context->ScreenContext == nullptr || !IsAlive())
-    {
+void EnemyWeaver::RenderForeground(CMPUT350::GameContext* context) {
+    if (context == nullptr || context->ScreenContext == nullptr || !IsAlive()) {
         return;
     }
 
-    const auto color = GetHealth() < GetMaxHealth()
-        ? CMPUT350::Colors::yellow
-        : CMPUT350::Colors::magenta;
+    const auto color =
+        GetHealth() < GetMaxHealth() ? CMPUT350::Colors::yellow : CMPUT350::Colors::magenta;
     context->ScreenContext->DrawLine({-15.0f, 0.0f}, {0.0f, -12.0f}, 4.0f, color);
     context->ScreenContext->DrawLine({0.0f, -12.0f}, {15.0f, 0.0f}, 4.0f, color);
     context->ScreenContext->DrawLine({15.0f, 0.0f}, {0.0f, 12.0f}, 4.0f, color);
@@ -864,12 +607,8 @@ void EnemyWeaver::RenderForeground(CMPUT350::GameContext* context)
  * @return None.
  */
 //-----------------------------------------------------------------------
-EnemyArmored::EnemyArmored(
-    CMPUT350::Point2D loc,
-    const std::vector<CMPUT350::Point2D>& entryPath
-): Enemy(loc, entryPath, 2, 250)
-{
-}
+EnemyArmored::EnemyArmored(CMPUT350::Point2D loc, const std::vector<CMPUT350::Point2D>& entryPath)
+    : Enemy(loc, entryPath, 2, 250) {}
 
 //-----------------------------------------------------------------------
 /**
@@ -882,37 +621,17 @@ EnemyArmored::EnemyArmored(
  * @return true if the charge started, false if the enemy was not in formation.
  */
 //-----------------------------------------------------------------------
-bool EnemyArmored::Attack(
-    CMPUT350::GameContext* context,
-    const CMPUT350::Point2D& target
-)
-{
+bool EnemyArmored::Attack(CMPUT350::GameContext* context, const CMPUT350::Point2D& target) {
     const CMPUT350::Point2D start = GetLocation();
-    const bool capturing = IsCaptureAttempt();
+    const CMPUT350::Point2D end = target + CMPUT350::Point2D(-100.0f, 150.0f);
+    const std::vector<CMPUT350::Point2D> path = {start, start + CMPUT350::Point2D(-120.0f, 120.0f),
+                                                 end + CMPUT350::Point2D(120.0f, -180.0f), end};
 
-    // A capture run ends right on the player so the grab range is reached; a
-    // normal charge instead overshoots below and to the side of the target.
-    const CMPUT350::Point2D end = capturing
-        ? target
-        : target + CMPUT350::Point2D(-100.0f, 150.0f);
-    const std::vector<CMPUT350::Point2D> path = {
-        start,
-        start + CMPUT350::Point2D(-120.0f, 120.0f),
-        end + CMPUT350::Point2D(120.0f, -180.0f),
-        end
-    };
-
-    if (!BeginAttackPath(path, kArmoredAttackSpeed))
-    {
+    if (!BeginAttackPath(path, kArmoredAttackSpeed)) {
         return false;
     }
 
-    // A capturing enemy holds its fire so it cannot destroy the ship it is
-    // trying to steal.
-    if (!capturing)
-    {
-        FireAtTarget(context, target, 5.0f);
-    }
+    FireAtTarget(context, target, 5.0f);
     return true;
 }
 //-----------------------------------------------------------------------
@@ -925,16 +644,14 @@ bool EnemyArmored::Attack(
  * @return None.
  */
 //-----------------------------------------------------------------------
-void EnemyArmored::RenderForeground(CMPUT350::GameContext* context)
-{
-    if (context == nullptr || context->ScreenContext == nullptr || !IsAlive())
-    {
+void EnemyArmored::RenderForeground(CMPUT350::GameContext* context) {
+    if (context == nullptr || context->ScreenContext == nullptr || !IsAlive()) {
         return;
     }
 
-    const auto color = GetHealth() < GetMaxHealth()
-        ? CMPUT350::Colors::yellow
-        : CMPUT350::Colors::red;
+    const auto color =
+        GetHealth() < GetMaxHealth() ? CMPUT350::Colors::yellow : CMPUT350::Colors::red;
     context->ScreenContext->DrawRect(CMPUT350::Rect(-12.0f, -12.0f, 24.0f, 24.0f), color);
-    context->ScreenContext->FrameRect(CMPUT350::Rect(-15.0f, -15.0f, 30.0f, 30.0f), 2.0f, CMPUT350::Colors::white);
+    context->ScreenContext->FrameRect(CMPUT350::Rect(-15.0f, -15.0f, 30.0f, 30.0f), 2.0f,
+                                      CMPUT350::Colors::white);
 }

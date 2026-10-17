@@ -1,4 +1,5 @@
 #include "Bullet.h"
+
 #include "Enemy.h"
 #include "Player.h"
 //-----------------------------------------------------------------------
@@ -16,9 +17,17 @@
  */
 //-----------------------------------------------------------------------
 Bullet::Bullet(CMPUT350::Point2D location, CMPUT350::Vector2D heading, bool player,
-    std::weak_ptr<CMPUT350::GameObject> parent):
-    mLocation(location), mPreviousLocation(location), mHeading(heading), mPlayer(player), mParent(parent), mAlive(true), mDestroyed(false), mHasCollisionPoint(false), mCollisionPoint(0.0f, 0.0f), mBounds(location, location)
-{
+               std::weak_ptr<CMPUT350::GameObject> parent)
+    : mLocation(location),
+      mPreviousLocation(location),
+      mHeading(heading),
+      mPlayer(player),
+      mParent(parent),
+      mAlive(true),
+      mDestroyed(false),
+      mHasCollisionPoint(false),
+      mCollisionPoint(0.0f, 0.0f),
+      mBounds(location, location) {
     // Segment points from where the bullet was toward where it is now, so the
     // collision line matches the direction the bullet just travelled.
     mShapes.push_back(CMPUT350::Shape(CMPUT350::Line(0.0f, 0.0f, -(heading.x), -(heading.y))));
@@ -33,10 +42,7 @@ Bullet::Bullet(CMPUT350::Point2D location, CMPUT350::Vector2D heading, bool play
  * @return true if fired by the player, false if fired by an enemy.
  */
 //-----------------------------------------------------------------------
-bool Bullet::IsPlayerBullet() const
-{
-    return mPlayer;
-}
+bool Bullet::IsPlayerBullet() const { return mPlayer; }
 
 //-----------------------------------------------------------------------
 /**
@@ -45,10 +51,7 @@ bool Bullet::IsPlayerBullet() const
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Bullet::Initialize(CMPUT350::GameContext* context)
-{
-    (void)context;
-}
+void Bullet::Initialize(CMPUT350::GameContext* context) { (void)context; }
 
 //-----------------------------------------------------------------------
 /**
@@ -63,16 +66,13 @@ void Bullet::Initialize(CMPUT350::GameContext* context)
  * @return None. Marks the bullet dead once it leaves the window.
  */
 //-----------------------------------------------------------------------
-void Bullet::Update(CMPUT350::GameContext* context)
-{
-    if (!mAlive)
-    {
+void Bullet::Update(CMPUT350::GameContext* context) {
+    if (!mAlive) {
         return;
     }
     const auto parent = mParent.lock();
 
-    if (parent == nullptr || !parent->IsAlive())
-    {
+    if (parent == nullptr || !parent->IsAlive()) {
         mAlive = false;
         return;
     }
@@ -84,17 +84,15 @@ void Bullet::Update(CMPUT350::GameContext* context)
     // bullet cannot skip past a small target between collision checks. Set
     // before the early-out below so a valid box exists even without a context.
     mBounds = CMPUT350::Rect(mPreviousLocation, mLocation);
-    if (context == nullptr || context->ScreenContext == nullptr)
-    {
+    if (context == nullptr || context->ScreenContext == nullptr) {
         return;
     }
     const float windowWidth = static_cast<float>(context->ScreenContext->GetWindowWidth());
 
     const float windowHeight = static_cast<float>(context->ScreenContext->GetWindowHeight());
 
-    if (mLocation.x < 0.0f || mLocation.x >= windowWidth ||
-        mLocation.y < 0.0f || mLocation.y >= windowHeight)
-    {
+    if (mLocation.x < 0.0f || mLocation.x >= windowWidth || mLocation.y < 0.0f ||
+        mLocation.y >= windowHeight) {
         mAlive = false;
     }
 }
@@ -110,12 +108,10 @@ void Bullet::Update(CMPUT350::GameContext* context)
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Bullet::LateUpdate(CMPUT350::GameContext* context)
-{
+void Bullet::LateUpdate(CMPUT350::GameContext* context) {
     (void)context;
 
-    if (mDestroyed)
-    {
+    if (mDestroyed) {
         mAlive = false;
     }
 }
@@ -127,10 +123,7 @@ void Bullet::LateUpdate(CMPUT350::GameContext* context)
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Bullet::RenderBackground(CMPUT350::GameContext* context)
-{
-    (void)context;
-}
+void Bullet::RenderBackground(CMPUT350::GameContext* context) { (void)context; }
 
 //-----------------------------------------------------------------------
 /**
@@ -142,36 +135,24 @@ void Bullet::RenderBackground(CMPUT350::GameContext* context)
  * @return None. Colour is yellow for player shots, red for enemy shots.
  */
 //-----------------------------------------------------------------------
-void Bullet::RenderForeground(CMPUT350::GameContext* context)
-{
-    if (context == nullptr || context->ScreenContext == nullptr)
-    {
+void Bullet::RenderForeground(CMPUT350::GameContext* context) {
+    if (context == nullptr || context->ScreenContext == nullptr) {
         return;
     }
-    if (!mAlive && !mDestroyed)
-    {
+    if (!mAlive && !mDestroyed) {
         return;
     }
 
     const CMPUT350::RGBColor color = mPlayer ? CMPUT350::Colors::yellow : CMPUT350::Colors::red;
-    if (mDestroyed && mHasCollisionPoint)
-    {
+    if (mDestroyed && mHasCollisionPoint) {
         // CollisionPoint is local to this bullet.
-        context->ScreenContext->DrawCircle(
-            mCollisionPoint,
-            8.0f,
-            color
-        );
-    }
-    else if (!mDestroyed)
-    {
+        context->ScreenContext->DrawCircle(mCollisionPoint, 8.0f, color);
+    } else if (!mDestroyed) {
         const CMPUT350::Point2D previousLocal = mPreviousLocation - mLocation;
-        if (mPlayer)
-        {
-            context->ScreenContext->DrawLine(previousLocal, CMPUT350::Point2D(0.0f, 0.0f), 6.0f, color);
-        }
-        else
-        {
+        if (mPlayer) {
+            context->ScreenContext->DrawLine(previousLocal, CMPUT350::Point2D(0.0f, 0.0f), 6.0f,
+                                             color);
+        } else {
             const CMPUT350::Point2D streakEnd = previousLocal * 4.0f;
             context->ScreenContext->DrawLine(CMPUT350::Point2D(0.0f, 0.0f), streakEnd, 5.0f, color);
         }
@@ -184,10 +165,7 @@ void Bullet::RenderForeground(CMPUT350::GameContext* context)
  * @return The centre of the bullet.
  */
 //-----------------------------------------------------------------------
-CMPUT350::Point2D Bullet::GetLocation() const
-{
-    return mLocation;
-}
+CMPUT350::Point2D Bullet::GetLocation() const { return mLocation; }
 
 //-----------------------------------------------------------------------
 /**
@@ -195,10 +173,7 @@ CMPUT350::Point2D Bullet::GetLocation() const
  * @return 0 radians.
  */
 //-----------------------------------------------------------------------
-float Bullet::GetRotation() const
-{
-    return 0.0;
-}
+float Bullet::GetRotation() const { return 0.0; }
 
 //-----------------------------------------------------------------------
 /**
@@ -211,39 +186,28 @@ float Bullet::GetRotation() const
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Bullet::CollisionEnter(const std::shared_ptr<CMPUT350::CollisionObject>& obj)
-{
-    if (obj == nullptr || !mAlive)
-    {
+void Bullet::CollisionEnter(const std::shared_ptr<CMPUT350::CollisionObject>& obj) {
+    if (obj == nullptr || !mAlive) {
         return;
     }
 
     // Bullets must not collide with the object that created them.
     const auto parent = mParent.lock();
 
-    if (parent != nullptr &&
-        parent.get() == static_cast<CMPUT350::GameObject*>(obj.get()))
-    {
+    if (parent != nullptr && parent.get() == static_cast<CMPUT350::GameObject*>(obj.get())) {
         return;
     }
 
     const auto enemy = std::dynamic_pointer_cast<Enemy>(obj);
     const auto player = std::dynamic_pointer_cast<Player>(obj);
 
-    // Player fire hits enemies, and also a friendly ship that has been
-    // captured (shooting your own stolen fighter destroys it). Enemy fire only
-    // hits the player.
-    const bool validTarget =
-        (mPlayer && enemy != nullptr) ||
-        (!mPlayer && player != nullptr) ||
-        (mPlayer && player != nullptr && player->IsCaptured());
+    // Player fire hits enemies; enemy fire hits the player.
+    const bool validTarget = (mPlayer && enemy != nullptr) || (!mPlayer && player != nullptr);
 
-    if (!validTarget)
-    {
+    if (!validTarget) {
         return;
     }
-    if (!mHasCollisionPoint)
-    {
+    if (!mHasCollisionPoint) {
         // Shape pairs without a unique contact point fall back to the bullet origin.
         mCollisionPoint = CMPUT350::Point2D(0.0f, 0.0f);
         mHasCollisionPoint = true;
@@ -265,41 +229,28 @@ void Bullet::CollisionEnter(const std::shared_ptr<CMPUT350::CollisionObject>& ob
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Bullet::CollisionEnter(
-    const std::shared_ptr<CMPUT350::CollisionObject>& obj,
-    const CMPUT350::Point2D& collisionPoint
-)
-{
-    if (obj == nullptr || !mAlive)
-    {
+void Bullet::CollisionEnter(const std::shared_ptr<CMPUT350::CollisionObject>& obj,
+                            const CMPUT350::Point2D& collisionPoint) {
+    if (obj == nullptr || !mAlive) {
         return;
     }
 
     const auto parent = mParent.lock();
 
-    if (parent != nullptr &&
-        parent.get() == static_cast<CMPUT350::GameObject*>(obj.get()))
-    {
+    if (parent != nullptr && parent.get() == static_cast<CMPUT350::GameObject*>(obj.get())) {
         return;
     }
 
     const auto enemy = std::dynamic_pointer_cast<Enemy>(obj);
     const auto player = std::dynamic_pointer_cast<Player>(obj);
 
-    // Player fire hits enemies, and also a friendly ship that has been
-    // captured (shooting your own stolen fighter destroys it). Enemy fire only
-    // hits the player.
-    const bool validTarget =
-        (mPlayer && enemy != nullptr) ||
-        (!mPlayer && player != nullptr) ||
-        (mPlayer && player != nullptr && player->IsCaptured());
+    // Player fire hits enemies; enemy fire hits the player.
+    const bool validTarget = (mPlayer && enemy != nullptr) || (!mPlayer && player != nullptr);
 
-    if (!validTarget)
-    {
+    if (!validTarget) {
         return;
     }
-    if (!mHasCollisionPoint || collisionPoint.y > mCollisionPoint.y)
-    {
+    if (!mHasCollisionPoint || collisionPoint.y > mCollisionPoint.y) {
         mCollisionPoint = collisionPoint;
         mHasCollisionPoint = true;
     }
@@ -313,22 +264,10 @@ void Bullet::CollisionEnter(
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Bullet::Kill()
-{
-    mAlive = false;
-}
+void Bullet::Kill() { mAlive = false; }
 
-bool Bullet::IsAlive() const
-{
-    return mAlive;
-}
+bool Bullet::IsAlive() const { return mAlive; }
 
-const CMPUT350::Rect& Bullet::GetBounds()
-{
-    return mBounds;
-}
+const CMPUT350::Rect& Bullet::GetBounds() { return mBounds; }
 
-const std::vector<CMPUT350::Shape>& Bullet::GetShapes()
-{
-    return mShapes;
-}
+const std::vector<CMPUT350::Shape>& Bullet::GetShapes() { return mShapes; }

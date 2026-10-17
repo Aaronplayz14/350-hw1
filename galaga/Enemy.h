@@ -8,10 +8,8 @@
 #include "GameContext.h"
 
 namespace CMPUT350 {
-    class NotificationManager;
+class NotificationManager;
 }
-
-class Player;
 
 //-----------------------------------------------------------------------
 /**
@@ -28,8 +26,7 @@ class Player;
  * never need to know their world position when rendering.
  */
 //-----------------------------------------------------------------------
-class Enemy : public CMPUT350::CollisionObject
-{
+class Enemy : public CMPUT350::CollisionObject {
 public:
     /// @brief Notification sent to the game manager when any enemy is destroyed.
     static constexpr const char* kDestroyedNotification = "EnemyDestroyed";
@@ -46,31 +43,11 @@ public:
      * @param health Number of player hits the enemy can absorb.
      * @param pointValue Score the enemy is worth before any formation bonus.
      */
-    Enemy(
-        CMPUT350::Point2D loc,
-        const std::vector<CMPUT350::Point2D>& entryPath,
-        int health = 1,
-        int pointValue = 100
-    );
+    Enemy(CMPUT350::Point2D loc, const std::vector<CMPUT350::Point2D>& entryPath, int health = 1,
+          int pointValue = 100);
 
     /// @brief Starts an attack against a target; false if one cannot begin.
     virtual bool Attack(CMPUT350::GameContext* context, const CMPUT350::Point2D& target) = 0;
-
-    /// @brief Marks the next attack as a capture run (extra credit).
-    ///
-    /// Only an enemy that supports capturing (the armored type) makes use of
-    /// this; it flags the enemy so that when the attack brings it within range
-    /// of the player it grabs the ship instead of ramming it.
-    virtual void BeginCapture();
-
-    /// @brief True while the enemy is trying to capture the player.
-    bool IsCaptureAttempt() const;
-
-    /// @brief True while the enemy is attempting or holding a capture.
-    ///
-    /// Used to suppress the collision that would normally destroy both the
-    /// enemy and the player when the two touch.
-    bool IsCapturing() const;
 
     // GameObject Functions
     void Initialize(CMPUT350::GameContext* context) override;
@@ -128,10 +105,7 @@ protected:
      * @return true if the attack started, false if the enemy was not in
      *         formation or the path was invalid.
      */
-    bool BeginAttackPath(
-        const std::vector<CMPUT350::Point2D>& path,
-        float speed
-    );
+    bool BeginAttackPath(const std::vector<CMPUT350::Point2D>& path, float speed);
 
     /**
      * @brief Spawns an enemy bullet aimed at a target.
@@ -144,39 +118,19 @@ protected:
      * @param speed Bullet speed in pixels per frame.
      * @return None. The bullet is queued with the engine.
      */
-    void FireAtTarget(
-        CMPUT350::GameContext* context,
-        const CMPUT350::Point2D& target,
-        float speed
-    );
+    void FireAtTarget(CMPUT350::GameContext* context, const CMPUT350::Point2D& target, float speed);
 
 private:
-    /**
-     * @brief Grabs the player ship if it is close enough (extra credit).
-     *
-     * Scans the engine for the active player and, when it lies within the
-     * capture radius, tells it to follow this enemy instead of the controls.
-     * Called only while a capture run is in progress and no ship is held yet, so
-     * the search stops as soon as one ship has been taken.
-     *
-     * @param context Supplies the engine used to find the player.
-     * @return None. The captured ship is remembered as a weak reference.
-     */
-    void TryCapture(CMPUT350::GameContext* context);
-
     /// @brief Why a trajectory is being followed, which decides what happens on arrival.
     enum class TrajectoryPurpose {
-        EnterFormation,   // Flying in from off-screen.
-        Attack,           // Running an attack curve toward the player.
-        ReturnToFormation // Heading back to the formation slot after an attack.
+        EnterFormation,    // Flying in from off-screen.
+        Attack,            // Running an attack curve toward the player.
+        ReturnToFormation  // Heading back to the formation slot after an attack.
     };
 
     /// @brief Builds the distance-sampled representation of a Bezier path.
-    bool StartTrajectory(
-        const std::vector<CMPUT350::Point2D>& path,
-        float speed,
-        TrajectoryPurpose purpose
-    );
+    bool StartTrajectory(const std::vector<CMPUT350::Point2D>& path, float speed,
+                         TrajectoryPurpose purpose);
 
     /// @brief Advances along the current trajectory and updates rotation.
     void AdvanceTrajectory();
@@ -187,35 +141,29 @@ private:
     /// @brief Applies one hit of damage, killing the enemy at zero health.
     void ApplyDamage();
 
-    CMPUT350::Point2D mLoc;              // Current world position (rotation centre).
-    CMPUT350::Point2D mFormationLocation; // Where the enemy belongs in formation.
-    CMPUT350::Rect mBounds;              // World-space broad-phase bounding box.
-    float mRotation;                     // Facing angle along the trajectory, radians.
+    CMPUT350::Point2D mLoc;                // Current world position (rotation centre).
+    CMPUT350::Point2D mFormationLocation;  // Where the enemy belongs in formation.
+    CMPUT350::Rect mBounds;                // World-space broad-phase bounding box.
+    float mRotation;                       // Facing angle along the trajectory, radians.
     bool mAlive;
     int mHealth;
     int mMaxHealth;
     int mPointValue;
-    bool mInFormation;                   // True once the entry path is complete.
-    bool mMovingOnPath;                  // True while following a Bezier trajectory.
-    bool mWasInFormationWhenKilled;      // Formation state captured in Kill().
-    bool mScoreClaimed;                  // Set once the manager has taken the score.
-    float mDistanceAlongTrajectory;      // Arc length covered on the current path.
-    float mTrajectoryLength;             // Total arc length of the current path.
-    float mMovementSpeed;                // Pixels travelled per frame.
-    std::vector<CMPUT350::Shape> mShapes; // Single circle collision shape.
+    bool mInFormation;                     // True once the entry path is complete.
+    bool mMovingOnPath;                    // True while following a Bezier trajectory.
+    bool mWasInFormationWhenKilled;        // Formation state captured in Kill().
+    bool mScoreClaimed;                    // Set once the manager has taken the score.
+    float mDistanceAlongTrajectory;        // Arc length covered on the current path.
+    float mTrajectoryLength;               // Total arc length of the current path.
+    float mMovementSpeed;                  // Pixels travelled per frame.
+    std::vector<CMPUT350::Shape> mShapes;  // Single circle collision shape.
     std::unique_ptr<CMPUT350::Bezier> mTrajectory;
-    std::vector<float> mTrajectoryParameterSamples; // t values for each sample.
-    std::vector<float> mTrajectoryDistanceSamples;  // Arc length for each sample.
-    CMPUT350::Point2D mTrajectoryEnd;    // Last control point of the active path.
+    std::vector<float> mTrajectoryParameterSamples;  // t values for each sample.
+    std::vector<float> mTrajectoryDistanceSamples;   // Arc length for each sample.
+    CMPUT350::Point2D mTrajectoryEnd;                // Last control point of the active path.
     TrajectoryPurpose mTrajectoryPurpose;
-    CMPUT350::NotificationManager* mNotificationManager; // Set during Initialize.
-    std::weak_ptr<CMPUT350::GameObject> mSelf; // Parent reference for spawned bullets.
-
-    // Ship-capture state (extra credit). mCaptureAttempt is set by the manager
-    // before an attack; once a ship has actually been grabbed it is recorded in
-    // mCapturedPlayer and the attempt flag is cleared.
-    bool mCaptureAttempt;
-    std::weak_ptr<Player> mCapturedPlayer;
+    CMPUT350::NotificationManager* mNotificationManager;  // Set during Initialize.
+    std::weak_ptr<CMPUT350::GameObject> mSelf;            // Parent reference for spawned bullets.
 };
 
 //-----------------------------------------------------------------------
@@ -226,8 +174,7 @@ private:
  * on a short, steep curve before returning.
  */
 //-----------------------------------------------------------------------
-class EnemyScout final : public Enemy
-{
+class EnemyScout final : public Enemy {
 public:
     EnemyScout(CMPUT350::Point2D loc, const std::vector<CMPUT350::Point2D>& entryPath);
 
@@ -244,8 +191,7 @@ public:
  * around the player on a looping curve.
  */
 //-----------------------------------------------------------------------
-class EnemyWeaver final : public Enemy
-{
+class EnemyWeaver final : public Enemy {
 public:
     EnemyWeaver(CMPUT350::Point2D loc, const std::vector<CMPUT350::Point2D>& entryPath);
 
@@ -262,8 +208,7 @@ public:
  * after the first hit and charge in on a broad, heavy curve.
  */
 //-----------------------------------------------------------------------
-class EnemyArmored final : public Enemy
-{
+class EnemyArmored final : public Enemy {
 public:
     EnemyArmored(CMPUT350::Point2D loc, const std::vector<CMPUT350::Point2D>& entryPath);
 

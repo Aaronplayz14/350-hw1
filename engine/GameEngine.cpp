@@ -1,13 +1,13 @@
 #include "GameEngine.h"
 
+#include <algorithm>
 #include <cmath>
 #include <iostream>
-#include <algorithm>
 
+#include "CollisionObject.h"
 #include "DrawContext.h"
 #include "FontData.h"
 #include "GraphicsObject.h"
-#include "CollisionObject.h"
 
 namespace CMPUT350 {
 
@@ -25,8 +25,7 @@ namespace {
  * @return true if the segment intersects the circle; otherwise false.
  */
 //-----------------------------------------------------------------------
-bool SegmentCircleEntry(const Line& line, const Circle& circle, Point2D& entry)
-{
+bool SegmentCircleEntry(const Line& line, const Circle& circle, Point2D& entry) {
     const Point2D direction = line.p2 - line.p1;
     const float lengthSquared = direction.Dot(direction);
 
@@ -89,13 +88,8 @@ bool SegmentCircleEntry(const Line& line, const Circle& circle, Point2D& entry)
  * @return true if the segment intersects the rectangle; otherwise false.
  */
 //-----------------------------------------------------------------------
-bool SegmentRectEntry(
-    const Line& line,
-    const Rect& rect,
-    float rectRotation,
-    const Point2D& rectLocation,
-    Point2D& entry)
-{
+bool SegmentRectEntry(const Line& line, const Rect& rect, float rectRotation,
+                      const Point2D& rectLocation, Point2D& entry) {
     const Point2D localStart = (line.p1 - rectLocation).RotateReverse(rectRotation);
     const Point2D localEnd = (line.p2 - rectLocation).RotateReverse(rectRotation);
 
@@ -124,8 +118,8 @@ bool SegmentRectEntry(
         Point2D crossing;
         if (localLine.Crosses(edges[i], crossing)) {
             const float t = lengthSquared > 0.000001f
-                ? (crossing - localStart).Dot(direction) / lengthSquared
-                : 0.0f;
+                                ? (crossing - localStart).Dot(direction) / lengthSquared
+                                : 0.0f;
 
             // Keep the crossing closest to the start of the directed segment.
             if (t >= 0.0f && t <= 1.0f && t < bestT) {
@@ -157,8 +151,8 @@ bool SegmentRectEntry(
  * @return true if the shapes overlap; otherwise false.
  */
 //-----------------------------------------------------------------------
-bool CircleRectOverlap(const Circle& circle, const Rect& rect, float rectRotation, Point2D rectLocation)
-{
+bool CircleRectOverlap(const Circle& circle, const Rect& rect, float rectRotation,
+                       Point2D rectLocation) {
     const Point2D local = (circle.center - rectLocation).RotateReverse(rectRotation);
 
     const float right = rect.topLeft.x + rect.width;
@@ -185,14 +179,8 @@ bool CircleRectOverlap(const Circle& circle, const Rect& rect, float rectRotatio
  * @return true if the rectangles overlap; otherwise false.
  */
 //-----------------------------------------------------------------------
-bool RectRectOverlap(
-    const Rect& first,
-    float firstRotation,
-    const Point2D& firstLocation,
-    const Rect& second,
-    float secondRotation,
-    const Point2D& secondLocation)
-{
+bool RectRectOverlap(const Rect& first, float firstRotation, const Point2D& firstLocation,
+                     const Rect& second, float secondRotation, const Point2D& secondLocation) {
     std::vector<Point2D> firstCorners = first.Points();
     std::vector<Point2D> secondCorners = second.Points();
     for (Point2D& corner : firstCorners) {
@@ -202,12 +190,9 @@ bool RectRectOverlap(
         corner = corner.Rotate(secondRotation) + secondLocation;
     }
 
-    const Point2D edges[] = {
-        firstCorners[1] - firstCorners[0],
-        firstCorners[2] - firstCorners[0],
-        secondCorners[1] - secondCorners[0],
-        secondCorners[2] - secondCorners[0]
-    };
+    const Point2D edges[] = {firstCorners[1] - firstCorners[0], firstCorners[2] - firstCorners[0],
+                             secondCorners[1] - secondCorners[0],
+                             secondCorners[2] - secondCorners[0]};
 
     for (const Point2D& edge : edges) {
         const Point2D axis(-edge.y, edge.x);
@@ -254,8 +239,7 @@ bool RectRectOverlap(
  * @param name Title shown in the window's title bar.
  */
 //-----------------------------------------------------------------------
-GameEngine::GameEngine(unsigned int width, unsigned int height, const std::string& name)
-{
+GameEngine::GameEngine(unsigned int width, unsigned int height, const std::string& name) {
     mWindow = std::make_shared<sf::RenderWindow>(sf::VideoMode({width, height}), name);
 
     // Key repeat would send repeated key-down notifications instead of one.
@@ -267,8 +251,7 @@ GameEngine::GameEngine(unsigned int width, unsigned int height, const std::strin
     // Load the embedded font and give it to the drawing context.
     mFont = std::make_shared<sf::Font>();
     // Warn but continue: the window is still usable without the font.
-    if (!mFont->openFromMemory(_font, _font_len))
-        std::cerr << "WARNING: Font did not load.\n";
+    if (!mFont->openFromMemory(_font, _font_len)) std::cerr << "WARNING: Font did not load.\n";
 
     mDrawContext = std::make_shared<DrawContext>(mWindow, mFont);
     mGUIContext = std::make_shared<DrawContext>(mWindow, mFont);
@@ -292,10 +275,8 @@ GameEngine::GameEngine(unsigned int width, unsigned int height, const std::strin
  * the drawing surface before the shared pointers are released.
  */
 //-----------------------------------------------------------------------
-GameEngine::~GameEngine()
-{
-    if (mWindow != nullptr && mWindow->isOpen())
-        mWindow->close();
+GameEngine::~GameEngine() {
+    if (mWindow != nullptr && mWindow->isOpen()) mWindow->close();
 }
 
 //-----------------------------------------------------------------------
@@ -311,8 +292,7 @@ GameEngine::~GameEngine()
  * @return None. The object appears in the scene on the next frame.
  */
 //-----------------------------------------------------------------------
-void GameEngine::AddGameObject(std::shared_ptr<GameObject> gameObject)
-{
+void GameEngine::AddGameObject(std::shared_ptr<GameObject> gameObject) {
     mObjectsToAdd.push_back(gameObject);
 }
 //-----------------------------------------------------------------------
@@ -326,8 +306,7 @@ void GameEngine::AddGameObject(std::shared_ptr<GameObject> gameObject)
  * @return None.
  */
 //-----------------------------------------------------------------------
-void GameEngine::InstallKeyDownNotification(int key, const std::string& notification)
-{
+void GameEngine::InstallKeyDownNotification(int key, const std::string& notification) {
     if (notification.empty()) {
         return;
     }
@@ -335,11 +314,8 @@ void GameEngine::InstallKeyDownNotification(int key, const std::string& notifica
     auto& notifications = mKeyDownNotifications[key];
 
     // The same key/action pair should be stored only once.
-    if (std::find(
-            notifications.begin(),
-            notifications.end(),
-            notification
-        ) == notifications.end()) {
+    if (std::find(notifications.begin(), notifications.end(), notification) ==
+        notifications.end()) {
         notifications.push_back(notification);
     }
 }
@@ -352,22 +328,15 @@ void GameEngine::InstallKeyDownNotification(int key, const std::string& notifica
  * @return None.
  */
 //-----------------------------------------------------------------------
-void GameEngine::InstallKeyUpNotification(
-    int key,
-    const std::string& notification
-)
-{
+void GameEngine::InstallKeyUpNotification(int key, const std::string& notification) {
     if (notification.empty()) {
         return;
     }
 
     auto& notifications = mKeyUpNotifications[key];
 
-    if (std::find(
-            notifications.begin(),
-            notifications.end(),
-            notification
-        ) == notifications.end()) {
+    if (std::find(notifications.begin(), notifications.end(), notification) ==
+        notifications.end()) {
         notifications.push_back(notification);
     }
 }
@@ -383,8 +352,7 @@ void GameEngine::InstallKeyUpNotification(
  * @return None.
  */
 //-----------------------------------------------------------------------
-void GameEngine::ClearKeyNotifications()
-{
+void GameEngine::ClearKeyNotifications() {
     mKeyDownNotifications.clear();
     mKeyUpNotifications.clear();
 }
@@ -395,10 +363,7 @@ void GameEngine::ClearKeyNotifications()
  * @return begin() of the internal object vector.
  */
 //-----------------------------------------------------------------------
-GameEngine::const_iterator GameEngine::begin() const
-{
-    return mGameObjects.begin();
-}
+GameEngine::const_iterator GameEngine::begin() const { return mGameObjects.begin(); }
 
 //-----------------------------------------------------------------------
 /**
@@ -406,10 +371,7 @@ GameEngine::const_iterator GameEngine::begin() const
  * @return end() of the internal object vector.
  */
 //-----------------------------------------------------------------------
-GameEngine::const_iterator GameEngine::end() const
-{
-    return mGameObjects.end();
-}
+GameEngine::const_iterator GameEngine::end() const { return mGameObjects.end(); }
 
 //-----------------------------------------------------------------------
 /**
@@ -417,10 +379,7 @@ GameEngine::const_iterator GameEngine::end() const
  * @return cbegin() of the internal object vector.
  */
 //-----------------------------------------------------------------------
-GameEngine::const_iterator GameEngine::cbegin() const
-{
-    return mGameObjects.cbegin();
-}
+GameEngine::const_iterator GameEngine::cbegin() const { return mGameObjects.cbegin(); }
 
 //-----------------------------------------------------------------------
 /**
@@ -428,10 +387,7 @@ GameEngine::const_iterator GameEngine::cbegin() const
  * @return cend() of the internal object vector.
  */
 //-----------------------------------------------------------------------
-GameEngine::const_iterator GameEngine::cend() const
-{
-    return mGameObjects.cend();
-}
+GameEngine::const_iterator GameEngine::cend() const { return mGameObjects.cend(); }
 //-----------------------------------------------------------------------
 /**
  * @brief Runs the main game loop until the window is closed.
@@ -451,30 +407,23 @@ GameEngine::const_iterator GameEngine::cend() const
  * @return None. Blocks until the window is closed or a Closed event arrives.
  */
 //-----------------------------------------------------------------------
-void GameEngine::Run()
-{
-    while (mWindow->isOpen())
-    {
+void GameEngine::Run() {
+    while (mWindow->isOpen()) {
         // 0. Remove dead objects. Swap with the last one so nothing is
         //    shifted; the loop deliberately does not advance i after a swap,
         //    because the element moved into position i is unchecked.
-        for (std::size_t i = 0; i < mGameObjects.size();)
-        {
-            if (!mGameObjects[i]->IsAlive())
-            {
+        for (std::size_t i = 0; i < mGameObjects.size();) {
+            if (!mGameObjects[i]->IsAlive()) {
                 mGameObjects[i] = mGameObjects.back();
                 mGameObjects.pop_back();
-            }
-            else
-            {
+            } else {
                 ++i;
             }
         }
 
         // 1. Activate everything queued during the last frame.  Indexed loop
         //    because an object may add more objects while it initializes.
-        for (std::size_t i = 0; i < mObjectsToAdd.size(); ++i)
-        {
+        for (std::size_t i = 0; i < mObjectsToAdd.size(); ++i) {
             mGameObjects.push_back(mObjectsToAdd[i]);
             mGameContext.CurrObject = mObjectsToAdd[i];
             mObjectsToAdd[i]->Initialize(&mGameContext);
@@ -486,19 +435,15 @@ void GameEngine::Run()
         mNotificationManager.AdvanceFrame(mGameContext.currentFrame);
 
         // 2. Window and keyboard events.
-        while (const auto event = mWindow->pollEvent())
-        {
-            if (event->is<sf::Event::Closed>())
-            {
+        while (const auto event = mWindow->pollEvent()) {
+            if (event->is<sf::Event::Closed>()) {
                 mWindow->close();
                 break;
             }
 
-            if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>())
-            {
-                const auto found = mKeyDownNotifications.find(
-                    static_cast<int>(keyPressed->scancode)
-                );
+            if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
+                const auto found =
+                    mKeyDownNotifications.find(static_cast<int>(keyPressed->scancode));
                 if (found != mKeyDownNotifications.end()) {
                     // Copy first: a listener may re-register (or clear) the
                     // engine's bindings while handling the notification, which
@@ -508,12 +453,9 @@ void GameEngine::Run()
                         mNotificationManager.Notify(notification);
                     }
                 }
-            }
-            else if (const auto* keyReleased = event->getIf<sf::Event::KeyReleased>())
-            {
-                const auto found = mKeyUpNotifications.find(
-                    static_cast<int>(keyReleased->scancode)
-                );
+            } else if (const auto* keyReleased = event->getIf<sf::Event::KeyReleased>()) {
+                const auto found =
+                    mKeyUpNotifications.find(static_cast<int>(keyReleased->scancode));
                 if (found != mKeyUpNotifications.end()) {
                     const std::vector<std::string> notifications = found->second;
                     for (const auto& notification : notifications) {
@@ -522,12 +464,10 @@ void GameEngine::Run()
                 }
             }
         }
-        if (!mWindow->isOpen())
-            break;
+        if (!mWindow->isOpen()) break;
 
         // 3. Simulate the game.
-        for (auto& object : mGameObjects)
-        {
+        for (auto& object : mGameObjects) {
             mGameContext.CurrObject = object;
             object->Update(&mGameContext);
             mGameContext.CurrObject.reset();
@@ -536,18 +476,16 @@ void GameEngine::Run()
         // 4. Detect collisions. The outer bound stops one short of the end and
         //    the inner loop starts at i + 1, so each pair is visited exactly
         //    once and no object is compared against itself.
-        for (std::size_t i = 0; i + 1 < mGameObjects.size(); ++i)
-        {
+        for (std::size_t i = 0; i + 1 < mGameObjects.size(); ++i) {
             // Objects not deriving from CollisionObject cannot collide.
-            std::shared_ptr<CollisionObject> objI = std::dynamic_pointer_cast<CollisionObject>(mGameObjects[i]);
-            if (objI == nullptr)
-                continue;
+            std::shared_ptr<CollisionObject> objI =
+                std::dynamic_pointer_cast<CollisionObject>(mGameObjects[i]);
+            if (objI == nullptr) continue;
 
-            for (std::size_t j = i + 1; j < mGameObjects.size(); ++j)
-            {
-                std::shared_ptr<CollisionObject> objIJ = std::dynamic_pointer_cast<CollisionObject>(mGameObjects[j]);
-                if (objIJ == nullptr)
-                    continue;
+            for (std::size_t j = i + 1; j < mGameObjects.size(); ++j) {
+                std::shared_ptr<CollisionObject> objIJ =
+                    std::dynamic_pointer_cast<CollisionObject>(mGameObjects[j]);
+                if (objIJ == nullptr) continue;
 
                 // Copy the bounds: operator&= mutates in place and we must
                 // not disturb the object's own stored rectangle.
@@ -557,126 +495,178 @@ void GameEngine::Run()
                 // Rect::operator&= leaves width as NaN when the boxes miss,
                 // so a real number here means they overlap.
                 boundsI &= boundsIJ;
-                if (!std::isnan(boundsI.width))
-                {
+                if (!std::isnan(boundsI.width)) {
                     std::vector<Shape> shapesI = objI->GetShapes();
                     std::vector<Shape> shapesIJ = objIJ->GetShapes();
 
-                    for (std::size_t u = 0; u < shapesI.size(); ++u)
-                    {
-                        for (std::size_t v = 0; v < shapesIJ.size(); ++v)
-                        {
+                    for (std::size_t u = 0; u < shapesI.size(); ++u) {
+                        for (std::size_t v = 0; v < shapesIJ.size(); ++v) {
                             // Rect-Rect Collision
                             if (shapesI[u].t == ShapeType::kRect &&
                                 shapesIJ[v].t == ShapeType::kRect) {
-                                if (RectRectOverlap(
-                                        shapesI[u].shape.rect,
-                                        objI->GetRotation(),
-                                        objI->GetLocation(),
-                                        shapesIJ[v].shape.rect,
-                                        objIJ->GetRotation(),
-                                        objIJ->GetLocation())) {
+                                if (RectRectOverlap(shapesI[u].shape.rect, objI->GetRotation(),
+                                                    objI->GetLocation(), shapesIJ[v].shape.rect,
+                                                    objIJ->GetRotation(), objIJ->GetLocation())) {
                                     objI->CollisionEnter(objIJ);
                                     objIJ->CollisionEnter(objI);
                                 }
-                            // Circle-Circle Collision    
-                            } else if (shapesI[u].t == ShapeType::kCircle && shapesIJ[v].t == ShapeType::kCircle) {
-                                Point2D center1 = shapesI[u].shape.circle.center.Rotate(objI->GetRotation()) + objI->GetLocation();
-                                Point2D center2 = shapesIJ[v].shape.circle.center.Rotate(objIJ->GetRotation()) + objIJ->GetLocation();
-                                if (center1.Distance(center2) <= shapesI[u].shape.circle.radius + shapesIJ[v].shape.circle.radius) {
+                                // Circle-Circle Collision
+                            } else if (shapesI[u].t == ShapeType::kCircle &&
+                                       shapesIJ[v].t == ShapeType::kCircle) {
+                                Point2D center1 =
+                                    shapesI[u].shape.circle.center.Rotate(objI->GetRotation()) +
+                                    objI->GetLocation();
+                                Point2D center2 =
+                                    shapesIJ[v].shape.circle.center.Rotate(objIJ->GetRotation()) +
+                                    objIJ->GetLocation();
+                                if (center1.Distance(center2) <=
+                                    shapesI[u].shape.circle.radius +
+                                        shapesIJ[v].shape.circle.radius) {
                                     objI->CollisionEnter(objIJ);
                                     objIJ->CollisionEnter(objI);
                                 }
 
-                            // Line-Line Collision
-                            } else if (shapesI[u].t == ShapeType::kLine && shapesIJ[v].t == ShapeType::kLine) {
+                                // Line-Line Collision
+                            } else if (shapesI[u].t == ShapeType::kLine &&
+                                       shapesIJ[v].t == ShapeType::kLine) {
                                 Point2D crossPoint = Point2D();
-                                Line line1 = Line(shapesI[u].shape.line.p1.Rotate(objI->GetRotation()) + objI->GetLocation(), 
-                                                  shapesI[u].shape.line.p2.Rotate(objI->GetRotation()) + objI->GetLocation());
-                                Line line2 = Line(shapesIJ[v].shape.line.p1.Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), 
-                                                  shapesIJ[v].shape.line.p2.Rotate(objIJ->GetRotation()) + objIJ->GetLocation());
+                                Line line1 =
+                                    Line(shapesI[u].shape.line.p1.Rotate(objI->GetRotation()) +
+                                             objI->GetLocation(),
+                                         shapesI[u].shape.line.p2.Rotate(objI->GetRotation()) +
+                                             objI->GetLocation());
+                                Line line2 =
+                                    Line(shapesIJ[v].shape.line.p1.Rotate(objIJ->GetRotation()) +
+                                             objIJ->GetLocation(),
+                                         shapesIJ[v].shape.line.p2.Rotate(objIJ->GetRotation()) +
+                                             objIJ->GetLocation());
                                 if (line1.Crosses(line2, crossPoint)) {
                                     Point2D cPointI = crossPoint - objI->GetLocation();
                                     Point2D cPointIJ = crossPoint - objIJ->GetLocation();
-                                    objI->CollisionEnter(objIJ, cPointI.RotateReverse(objI->GetRotation()));
-                                    objIJ->CollisionEnter(objI, cPointIJ.RotateReverse(objIJ->GetRotation()));
+                                    objI->CollisionEnter(
+                                        objIJ, cPointI.RotateReverse(objI->GetRotation()));
+                                    objIJ->CollisionEnter(
+                                        objI, cPointIJ.RotateReverse(objIJ->GetRotation()));
                                 }
 
-                            // Circle-Line Collision
-                            } else if (shapesI[u].t == ShapeType::kCircle && shapesIJ[v].t == ShapeType::kLine) {
-                                Circle circ1 = Circle(shapesI[u].shape.circle.center.Rotate(objI->GetRotation()) + objI->GetLocation(), shapesI[u].shape.circle.radius);
-                                Line line1 = Line(shapesIJ[v].shape.line.p1.Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), 
-                                                  shapesIJ[v].shape.line.p2.Rotate(objIJ->GetRotation()) + objIJ->GetLocation());
+                                // Circle-Line Collision
+                            } else if (shapesI[u].t == ShapeType::kCircle &&
+                                       shapesIJ[v].t == ShapeType::kLine) {
+                                Circle circ1 = Circle(
+                                    shapesI[u].shape.circle.center.Rotate(objI->GetRotation()) +
+                                        objI->GetLocation(),
+                                    shapesI[u].shape.circle.radius);
+                                Line line1 =
+                                    Line(shapesIJ[v].shape.line.p1.Rotate(objIJ->GetRotation()) +
+                                             objIJ->GetLocation(),
+                                         shapesIJ[v].shape.line.p2.Rotate(objIJ->GetRotation()) +
+                                             objIJ->GetLocation());
                                 Point2D collisionPoint;
                                 if (SegmentCircleEntry(line1, circ1, collisionPoint)) {
-                                    Point2D cPointI = (collisionPoint - objI->GetLocation()).RotateReverse(objI->GetRotation());
-                                    Point2D cPointIJ = (collisionPoint - objIJ->GetLocation()).RotateReverse(objIJ->GetRotation());
+                                    Point2D cPointI = (collisionPoint - objI->GetLocation())
+                                                          .RotateReverse(objI->GetRotation());
+                                    Point2D cPointIJ = (collisionPoint - objIJ->GetLocation())
+                                                           .RotateReverse(objIJ->GetRotation());
                                     objI->CollisionEnter(objIJ, cPointI);
                                     objIJ->CollisionEnter(objI, cPointIJ);
                                 }
 
-                            // Line-Circle Collision
-                            } else if (shapesI[u].t == ShapeType::kLine && shapesIJ[v].t == ShapeType::kCircle) {
-                                Circle circ1 = Circle(shapesIJ[v].shape.circle.center.Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), shapesIJ[v].shape.circle.radius);
-                                Line line1 = Line(shapesI[u].shape.line.p1.Rotate(objI->GetRotation()) + objI->GetLocation(), 
-                                                  shapesI[u].shape.line.p2.Rotate(objI->GetRotation()) + objI->GetLocation());
+                                // Line-Circle Collision
+                            } else if (shapesI[u].t == ShapeType::kLine &&
+                                       shapesIJ[v].t == ShapeType::kCircle) {
+                                Circle circ1 = Circle(
+                                    shapesIJ[v].shape.circle.center.Rotate(objIJ->GetRotation()) +
+                                        objIJ->GetLocation(),
+                                    shapesIJ[v].shape.circle.radius);
+                                Line line1 =
+                                    Line(shapesI[u].shape.line.p1.Rotate(objI->GetRotation()) +
+                                             objI->GetLocation(),
+                                         shapesI[u].shape.line.p2.Rotate(objI->GetRotation()) +
+                                             objI->GetLocation());
                                 Point2D collisionPoint;
                                 if (SegmentCircleEntry(line1, circ1, collisionPoint)) {
-                                    Point2D cPointI = (collisionPoint - objI->GetLocation()).RotateReverse(objI->GetRotation());
-                                    Point2D cPointIJ = (collisionPoint - objIJ->GetLocation()).RotateReverse(objIJ->GetRotation());
+                                    Point2D cPointI = (collisionPoint - objI->GetLocation())
+                                                          .RotateReverse(objI->GetRotation());
+                                    Point2D cPointIJ = (collisionPoint - objIJ->GetLocation())
+                                                           .RotateReverse(objIJ->GetRotation());
                                     objI->CollisionEnter(objIJ, cPointI);
                                     objIJ->CollisionEnter(objI, cPointIJ);
                                 }
 
-                            // Circle-Rect Collision
-                            } else if (shapesI[u].t == ShapeType::kCircle && shapesIJ[v].t == ShapeType::kRect) {
-                                Circle circ1 = Circle(shapesI[u].shape.circle.center.Rotate(objI->GetRotation()) + objI->GetLocation(), shapesI[u].shape.circle.radius);
-                                if (CircleRectOverlap(circ1, shapesIJ[v].shape.rect, objIJ->GetRotation(), objIJ->GetLocation())) {
+                                // Circle-Rect Collision
+                            } else if (shapesI[u].t == ShapeType::kCircle &&
+                                       shapesIJ[v].t == ShapeType::kRect) {
+                                Circle circ1 = Circle(
+                                    shapesI[u].shape.circle.center.Rotate(objI->GetRotation()) +
+                                        objI->GetLocation(),
+                                    shapesI[u].shape.circle.radius);
+                                if (CircleRectOverlap(circ1, shapesIJ[v].shape.rect,
+                                                      objIJ->GetRotation(), objIJ->GetLocation())) {
                                     objI->CollisionEnter(objIJ);
                                     objIJ->CollisionEnter(objI);
                                 }
 
-                            // Rect-Circle Collision
-                            } else if (shapesI[u].t == ShapeType::kRect && shapesIJ[v].t == ShapeType::kCircle) {
-                                Circle circ1 = Circle(shapesIJ[v].shape.circle.center.Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), shapesIJ[v].shape.circle.radius);
-                                if (CircleRectOverlap(circ1, shapesI[u].shape.rect, objI->GetRotation(), objI->GetLocation())) {
+                                // Rect-Circle Collision
+                            } else if (shapesI[u].t == ShapeType::kRect &&
+                                       shapesIJ[v].t == ShapeType::kCircle) {
+                                Circle circ1 = Circle(
+                                    shapesIJ[v].shape.circle.center.Rotate(objIJ->GetRotation()) +
+                                        objIJ->GetLocation(),
+                                    shapesIJ[v].shape.circle.radius);
+                                if (CircleRectOverlap(circ1, shapesI[u].shape.rect,
+                                                      objI->GetRotation(), objI->GetLocation())) {
                                     objI->CollisionEnter(objIJ);
                                     objIJ->CollisionEnter(objI);
                                 }
 
-                            // Line-Rect Collision
-                            } else if (shapesI[u].t == ShapeType::kLine && shapesIJ[v].t == ShapeType::kRect) {
-                                Line line1 = Line(shapesI[u].shape.line.p1.Rotate(objI->GetRotation()) + objI->GetLocation(), 
-                                                  shapesI[u].shape.line.p2.Rotate(objI->GetRotation()) + objI->GetLocation());
+                                // Line-Rect Collision
+                            } else if (shapesI[u].t == ShapeType::kLine &&
+                                       shapesIJ[v].t == ShapeType::kRect) {
+                                Line line1 =
+                                    Line(shapesI[u].shape.line.p1.Rotate(objI->GetRotation()) +
+                                             objI->GetLocation(),
+                                         shapesI[u].shape.line.p2.Rotate(objI->GetRotation()) +
+                                             objI->GetLocation());
                                 Point2D collisionPoint;
-                                if (SegmentRectEntry(line1, shapesIJ[v].shape.rect, objIJ->GetRotation(), objIJ->GetLocation(), collisionPoint)) {
-                                    Point2D cPointI = (collisionPoint - objI->GetLocation()).RotateReverse(objI->GetRotation());
-                                    Point2D cPointIJ = (collisionPoint - objIJ->GetLocation()).RotateReverse(objIJ->GetRotation());
+                                if (SegmentRectEntry(line1, shapesIJ[v].shape.rect,
+                                                     objIJ->GetRotation(), objIJ->GetLocation(),
+                                                     collisionPoint)) {
+                                    Point2D cPointI = (collisionPoint - objI->GetLocation())
+                                                          .RotateReverse(objI->GetRotation());
+                                    Point2D cPointIJ = (collisionPoint - objIJ->GetLocation())
+                                                           .RotateReverse(objIJ->GetRotation());
                                     objI->CollisionEnter(objIJ, cPointI);
                                     objIJ->CollisionEnter(objI, cPointIJ);
                                 }
 
-                            // Rect-Line Collision
-                            } else if (shapesI[u].t == ShapeType::kRect && shapesIJ[v].t == ShapeType::kLine) {
-                                Line line1 = Line(shapesIJ[v].shape.line.p1.Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), 
-                                                  shapesIJ[v].shape.line.p2.Rotate(objIJ->GetRotation()) + objIJ->GetLocation());
+                                // Rect-Line Collision
+                            } else if (shapesI[u].t == ShapeType::kRect &&
+                                       shapesIJ[v].t == ShapeType::kLine) {
+                                Line line1 =
+                                    Line(shapesIJ[v].shape.line.p1.Rotate(objIJ->GetRotation()) +
+                                             objIJ->GetLocation(),
+                                         shapesIJ[v].shape.line.p2.Rotate(objIJ->GetRotation()) +
+                                             objIJ->GetLocation());
                                 Point2D collisionPoint;
-                                if (SegmentRectEntry(line1, shapesI[u].shape.rect, objI->GetRotation(), objI->GetLocation(), collisionPoint)) {
-                                    Point2D cPointI = (collisionPoint - objI->GetLocation()).RotateReverse(objI->GetRotation());
-                                    Point2D cPointIJ = (collisionPoint - objIJ->GetLocation()).RotateReverse(objIJ->GetRotation());
+                                if (SegmentRectEntry(line1, shapesI[u].shape.rect,
+                                                     objI->GetRotation(), objI->GetLocation(),
+                                                     collisionPoint)) {
+                                    Point2D cPointI = (collisionPoint - objI->GetLocation())
+                                                          .RotateReverse(objI->GetRotation());
+                                    Point2D cPointIJ = (collisionPoint - objIJ->GetLocation())
+                                                           .RotateReverse(objIJ->GetRotation());
                                     objI->CollisionEnter(objIJ, cPointI);
                                     objIJ->CollisionEnter(objI, cPointIJ);
                                 }
                             }
                         }
-                    }                    
+                    }
                 }
             }
         }
 
         // 5. Post-collision updates.
-        for (auto& object : mGameObjects)
-        {
+        for (auto& object : mGameObjects) {
             mGameContext.CurrObject = object;
             object->LateUpdate(&mGameContext);
             mGameContext.CurrObject.reset();
@@ -686,11 +676,9 @@ void GameEngine::Run()
         //    backgrounds (stars) underneath the foreground no matter what
         //    order the objects happen to sit in.
         mWindow->clear(sf::Color::Black);
-        for (auto& object : mGameObjects)
-        {
+        for (auto& object : mGameObjects) {
             // raw pointer here: the shared_ptr must not gain an owner.
-            if (auto* graphics = dynamic_cast<GraphicsObject*>(object.get()))
-            {
+            if (auto* graphics = dynamic_cast<GraphicsObject*>(object.get())) {
                 // The object draws in its own local space, so point the
                 // DrawContext at its world position and rotation first.
                 mDrawContext->SetContextOffset(graphics->GetLocation());
@@ -701,10 +689,8 @@ void GameEngine::Run()
         }
 
         // 7. Foreground on top, each with its own transform.
-        for (auto& object : mGameObjects)
-        {
-            if (auto* graphics = dynamic_cast<GraphicsObject*>(object.get()))
-            {
+        for (auto& object : mGameObjects) {
+            if (auto* graphics = dynamic_cast<GraphicsObject*>(object.get())) {
                 mDrawContext->SetContextOffset(graphics->GetLocation());
                 mDrawContext->SetContextRotation(graphics->GetRotation());
 
@@ -714,8 +700,7 @@ void GameEngine::Run()
 
         // 8. UI pass: HUD content that ignores object transforms. Drawn last
         //    so it sits on top; the GUI context is never given an offset.
-        for (auto& object : mGameObjects)
-        {
+        for (auto& object : mGameObjects) {
             mGameContext.CurrObject = object;
             object->RenderUI(&mGameContext);
             mGameContext.CurrObject.reset();

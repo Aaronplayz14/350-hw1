@@ -6,8 +6,8 @@
 #include <string>
 #include <vector>
 
-#include "GameObject.h"
 #include "GameContext.h"
+#include "GameObject.h"
 
 //-----------------------------------------------------------------------
 /**
@@ -19,8 +19,7 @@
  * the closing message; KeySetup edits the key bindings.
  */
 //-----------------------------------------------------------------------
-enum class GameState
-{
+enum class GameState {
     Title,     ///< Attract screen: insert coins and start, or open key setup.
     Startup,   ///< Level banner and player entry.
     Waves,     ///< Enemy ships fly in along their Bezier curves.
@@ -43,12 +42,10 @@ enum class GameState
  *
  * Extra credit implemented here:
  * - a keyboard setup screen (GameState::KeySetup) that re-assigns bindings,
- * - a replay system that re-plays just the recorded input notifications,
- * - ship capture is driven from SelectAttacks via Enemy::BeginCapture.
+ * - a replay system that re-plays just the recorded input notifications.
  */
 //-----------------------------------------------------------------------
-class Galaga : public CMPUT350::GameObject
-{
+class Galaga : public CMPUT350::GameObject {
 public:
     /// @brief Creates the manager for a window of the given size.
     Galaga(unsigned int width, unsigned int height);
@@ -67,13 +64,7 @@ public:
 
 private:
     /// @brief The player actions whose keys can be re-assigned.
-    enum class BindAction
-    {
-        MoveLeft = 0,
-        MoveRight = 1,
-        Fire = 2,
-        Count = 3
-    };
+    enum class BindAction { MoveLeft = 0, MoveRight = 1, Fire = 2, Count = 3 };
 
     // ---- Setup ---------------------------------------------------------
     /// @brief Re-installs every key binding from the current mBindings table.
@@ -96,7 +87,7 @@ private:
     void ClearPlayfield();
 
     // ---- Gameplay helpers ---------------------------------------------
-    /// @brief Launches a deterministic group of enemies, occasionally a capturer.
+    /// @brief Launches a deterministic group of enemies.
     void SelectAttacks(CMPUT350::GameContext* context);
     /// @brief Returns the live player's position, or the default home point.
     CMPUT350::Point2D PlayerTarget(CMPUT350::GameContext* context);
@@ -117,29 +108,29 @@ private:
     unsigned int mEnemyCount;  ///< Enemies still alive in the current level.
     unsigned int mCoins;       ///< Coins inserted but not yet used.
 
-    bool mPlayerAlive;         ///< Whether a player ship is currently in play.
-    bool mResetting;           ///< True while the playfield is being cleared.
+    bool mPlayerAlive;  ///< Whether a player ship is currently in play.
+    bool mResetting;    ///< True while the playfield is being cleared.
 
-    int mStateStartFrame;      ///< Frame the current state began (-1 until set).
-    int mLastAttackElapsed;    ///< Elapsed frame of the last attack launched.
-    unsigned int mAttackCounter; ///< Attacks launched, for deterministic choice.
-    int mWavesSpawned;         ///< Number of enemy waves launched this level.
-    int mRespawnFrame;         ///< Frame the player died (-1 when alive).
+    int mStateStartFrame;         ///< Frame the current state began (-1 until set).
+    int mLastAttackElapsed;       ///< Elapsed frame of the last attack launched.
+    unsigned int mAttackCounter;  ///< Attacks launched, for deterministic choice.
+    int mWavesSpawned;            ///< Number of enemy waves launched this level.
+    int mRespawnFrame;            ///< Frame the player died (-1 when alive).
 
     GameState state;
 
-    CMPUT350::EngineView* mEngine;                    ///< Cached engine view.
-    CMPUT350::NotificationManager* mNotifications;    ///< Cached manager.
+    CMPUT350::EngineView* mEngine;                  ///< Cached engine view.
+    CMPUT350::NotificationManager* mNotifications;  ///< Cached manager.
 
     /// @brief One scancode per BindAction.
     std::array<unsigned int, static_cast<std::size_t>(BindAction::Count)> mBindings;
-    int mSetupSelection;   ///< Highlighted action in the key setup screen.
-    bool mWaitingForKey;   ///< True while the next key press becomes a binding.
-    bool mCustomBindings;  ///< True after any player key has been reassigned.
-    std::string mSetupStatus; ///< Keyboard setup feedback shown on screen.
+    int mSetupSelection;       ///< Highlighted action in the key setup screen.
+    bool mWaitingForKey;       ///< True while the next key press becomes a binding.
+    bool mCustomBindings;      ///< True after any player key has been reassigned.
+    std::string mSetupStatus;  ///< Keyboard setup feedback shown on screen.
 
-    bool mReplaying;       ///< True while a recorded game is being replayed.
-    bool mReplayDone;      ///< True once the current recording has been shown.
+    bool mReplaying;   ///< True while a recorded game is being replayed.
+    bool mReplayDone;  ///< True once the current recording has been shown.
 };
 
 #endif  // GALAGA_H

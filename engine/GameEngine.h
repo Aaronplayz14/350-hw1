@@ -10,7 +10,6 @@
 #include "GameContext.h"
 #include "GameObject.h"
 #include "NotificationManager.h"
-
 #include <SFML/Graphics.hpp>
 
 namespace CMPUT350 {
