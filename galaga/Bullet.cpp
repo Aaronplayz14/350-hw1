@@ -12,6 +12,7 @@
  * @param location Starting position of the bullet.
  * @param heading Per-frame displacement added to the position in Update.
  * @param player true for shots fired by the player, false for enemy shots.
+ * @param parent Object that created the bullet; ignored for collisions.
  */
 //-----------------------------------------------------------------------
 Bullet::Bullet(CMPUT350::Point2D location, CMPUT350::Vector2D heading, bool player,
@@ -133,11 +134,10 @@ void Bullet::RenderBackground(CMPUT350::GameContext* context)
 
 //-----------------------------------------------------------------------
 /**
- * @brief Draws the bullet as a short streak along the segment it just moved.
+ * @brief Draws the bullet as a visible streak or a collision impact marker.
  *
- * Drawing the segment travelled rather than a dot keeps fast bullets visible.
- * Both endpoints are expressed relative to the bullet's current location,
- * because the engine applies that location as the drawing offset.
+ * Player fire follows the segment travelled this frame. Enemy fire is
+ * stretched behind its current position to remain visible.
  * @param context Supplies the drawing context.
  * @return None. Colour is yellow for player shots, red for enemy shots.
  */

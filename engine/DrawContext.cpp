@@ -9,6 +9,17 @@ namespace CMPUT350 {
 // Construction
 //-----------------------------------------------------------------------
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Creates a drawing context for an existing window and font.
+ *
+ * The context shares ownership of both resources through shared pointers and
+ * uses them for drawing text and shapes.
+ *
+ * @param window The render window to draw onto; must not be null.
+ * @param font The font used to draw text; must not be null.
+ */
+//-----------------------------------------------------------------------
 DrawContext::DrawContext(std::shared_ptr<sf::RenderWindow> window, std::shared_ptr<sf::Font> font)
     : mWindow(window), mFont(font) {}
 

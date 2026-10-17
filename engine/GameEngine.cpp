@@ -13,12 +13,18 @@ namespace CMPUT350 {
 
 namespace {
 
-// Computes the first point at which a directed segment enters a circle.
-//
-// The segment is treated as travelling from p1 to p2, so the returned point is
-// the contact nearest p1 (the "first" point hit), which is what a bullet needs
-// to plant its impact marker on the target. Returns false when the segment
-// never enters the circle.
+//-----------------------------------------------------------------------
+/**
+ * @brief Finds where a directed line segment first enters a circle.
+ *
+ * The segment travels from p1 to p2, and a start point already inside the
+ * circle is reported as the first contact.
+ * @param line Segment to test, directed from p1 to p2.
+ * @param circle Circle to test against.
+ * @param entry Receives the first contact point in world coordinates.
+ * @return true if the segment intersects the circle; otherwise false.
+ */
+//-----------------------------------------------------------------------
 bool SegmentCircleEntry(const Line& line, const Circle& circle, Point2D& entry)
 {
     const Point2D direction = line.p2 - line.p1;
@@ -68,12 +74,21 @@ bool SegmentCircleEntry(const Line& line, const Circle& circle, Point2D& entry)
     return false;
 }
 
-// Finds the first point where a directed segment enters a rotated rectangle.
-//
-// The segment is moved into the rectangle's local frame so the rectangle can
-// be treated as axis aligned. The crossing with the smallest parameter along
-// p1 -> p2 is the entry point; a segment that begins inside the rectangle
-// reports its start point.
+//-----------------------------------------------------------------------
+/**
+ * @brief Finds where a directed segment first enters a rotated rectangle.
+ *
+ * The segment is transformed into the rectangle's local frame, where the
+ * earliest crossing along p1 to p2 is selected. A start point inside the
+ * rectangle is reported as the first contact.
+ * @param line Segment to test, directed from p1 to p2 in world coordinates.
+ * @param rect Rectangle in the object's local coordinates.
+ * @param rectRotation Rectangle rotation in radians.
+ * @param rectLocation Rectangle origin in world coordinates.
+ * @param entry Receives the first contact point in world coordinates.
+ * @return true if the segment intersects the rectangle; otherwise false.
+ */
+//-----------------------------------------------------------------------
 bool SegmentRectEntry(
     const Line& line,
     const Rect& rect,
@@ -129,10 +144,19 @@ bool SegmentRectEntry(
     return true;
 }
 
-// Tests whether a circle overlaps a rectangle that may be rotated.
-//
-// The circle centre is moved into the rectangle's local frame, where the
-// rectangle is axis aligned and the usual clamp-to-box distance test applies.
+//-----------------------------------------------------------------------
+/**
+ * @brief Tests overlap between a circle and a rotated rectangle.
+ *
+ * The circle centre is transformed into the rectangle's local frame so the
+ * rectangle can be treated as axis aligned.
+ * @param circle Circle in world coordinates.
+ * @param rect Rectangle in its object's local coordinates.
+ * @param rectRotation Rectangle rotation in radians.
+ * @param rectLocation Rectangle origin in world coordinates.
+ * @return true if the shapes overlap; otherwise false.
+ */
+//-----------------------------------------------------------------------
 bool CircleRectOverlap(const Circle& circle, const Rect& rect, float rectRotation, Point2D rectLocation)
 {
     const Point2D local = (circle.center - rectLocation).RotateReverse(rectRotation);
@@ -146,8 +170,21 @@ bool CircleRectOverlap(const Circle& circle, const Rect& rect, float rectRotatio
     return Point2D(closestX, closestY).Distance(local) <= circle.radius;
 }
 
-// Separating-axis tests include the corners of each rectangle, so a rectangle
-// fully contained by another is still considered a collision.
+//-----------------------------------------------------------------------
+/**
+ * @brief Tests overlap between two rotated rectangles using separating axes.
+ *
+ * Testing axes from both rectangles also detects full containment.
+ * Implemented with the help of AI.
+ * @param first First rectangle in its object's local coordinates.
+ * @param firstRotation First rectangle's rotation in radians.
+ * @param firstLocation First rectangle's origin in world coordinates.
+ * @param second Second rectangle in its object's local coordinates.
+ * @param secondRotation Second rectangle's rotation in radians.
+ * @param secondLocation Second rectangle's origin in world coordinates.
+ * @return true if the rectangles overlap; otherwise false.
+ */
+//-----------------------------------------------------------------------
 bool RectRectOverlap(
     const Rect& first,
     float firstRotation,

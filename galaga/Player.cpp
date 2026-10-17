@@ -56,9 +56,8 @@ Player::Player(CMPUT350::Point2D loc)
  * @brief Caches the notification manager and subscribes to input events.
  *
  * The engine sets CurrObject to this player before calling Initialize, so the
- * weak self-reference lets the ship register for the movement, shooting, and
- * (for the keyboard setup screen) notification names the Galaga manager
- * registered with the engine.
+ * weak self-reference lets the ship register for the movement and shooting
+ * notifications installed by the Galaga manager.
  * @param context The engine's per-frame context.
  * @return None.
  */
@@ -88,9 +87,11 @@ void Player::Initialize(CMPUT350::GameContext* context)
 /**
  * @brief Rebuilds local hitboxes and their rotated world-space bounds.
  *
- * A double ship has one hitbox per fighter. Each local rectangle is transformed
- * by the current rotation before the broad-phase bounds are calculated, so the
- * engine cannot reject a collision that the narrow phase would accept.
+ * Each fighter gets separate hull and upper-body hitboxes. Their local
+ * rectangles are transformed by the current rotation before the broad-phase
+ * bounds are calculated, so the engine cannot reject a collision that the
+ * narrow phase would accept.
+ * Implemented with the help of AI.
  * @return None.
  */
 //-----------------------------------------------------------------------
@@ -156,10 +157,10 @@ void Player::RefreshBounds()
  * @brief Moves the ship, or follows its captor while captured.
  *
  * While Active the direction is read from flags set by notifications and
- * applied here, so movement is frame-rate independent: the ship advances a
- * fixed distance each frame rather than once per key event. Holding both keys
- * cancels out. The position is clamped so the hull stays fully inside the
- * playfield, and the bounding box is re-derived afterwards.
+ * applied here, so the ship advances a fixed distance per frame rather than
+ * once per key event. Holding both keys cancels out. The position is clamped
+ * so the hull stays fully inside the playfield, and the bounding box is
+ * re-derived afterwards.
  *
  * While Captured the ship is positioned above the capturing enemy and spins,
  * and while Dropping it falls back to the bottom row, both ignoring input.

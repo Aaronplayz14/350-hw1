@@ -17,11 +17,25 @@ constexpr char kKeySetup[] = "galaga.key.setup";
 constexpr char kRawKeyPrefix[] = "galaga.raw.key.";
 constexpr int kReplayCoinGraceFrames = 150;
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Builds the notification name for a raw keyboard scan code.
+ * @param key Physical key scan code.
+ * @return Notification name used by the keyboard setup screen.
+ */
+//-----------------------------------------------------------------------
 std::string RawKeyNotification(unsigned int key)
 {
     return std::string(kRawKeyPrefix) + std::to_string(key);
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Converts a keyboard scan code into a display-friendly name.
+ * @param key Physical key scan code.
+ * @return A readable key label, or a numeric fallback for unsupported keys.
+ */
+//-----------------------------------------------------------------------
 std::string KeyName(unsigned int key)
 {
     static constexpr std::array<const char*, 26> letters = {
@@ -64,6 +78,13 @@ std::string KeyName(unsigned int key)
 }
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Creates a game manager for the given window dimensions.
+ * @param width Playfield width in pixels.
+ * @param height Playfield height in pixels.
+ */
+//-----------------------------------------------------------------------
 Galaga::Galaga(unsigned int width, unsigned int height):
     mAlive(true),
     mWidth(width),
@@ -93,9 +114,16 @@ Galaga::Galaga(unsigned int width, unsigned int height):
 {
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Registers game notifications, installs controls, and creates the starfield.
+ * @param context The engine's initialization and per-frame context.
+ * @return None.
+ */
+//-----------------------------------------------------------------------
 void Galaga::Initialize(CMPUT350::GameContext* context)
 {
-    // The engine sets CurrObject to this player before calling Initialize.
+    // The engine sets CurrObject to this game manager before Initialize.
     const std::weak_ptr<CMPUT350::GameObject> self = context->CurrObject;
 
     if (self.expired() || context->mNotificationManager == nullptr
@@ -117,6 +145,15 @@ void Galaga::Initialize(CMPUT350::GameContext* context)
     context->mEngineView->AddGameObject(std::make_shared<Stars>(250, CMPUT350::Rect(0, 0, 768, 1024)));
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Installs coin, start, setup, and player-control key bindings.
+ *
+ * Arrow keys remain available until a custom movement binding is saved.
+ * Implemented with the help of AI.
+ * @return None.
+ */
+//-----------------------------------------------------------------------
 void Galaga::InstallBindings()
 {
     if (mEngine == nullptr) {
@@ -146,6 +183,12 @@ void Galaga::InstallBindings()
     }
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Routes every supported key press to the keyboard setup screen.
+ * @return None.
+ */
+//-----------------------------------------------------------------------
 void Galaga::InstallKeySetupBindings()
 {
     if (mEngine == nullptr) {
@@ -161,6 +204,16 @@ void Galaga::InstallKeySetupBindings()
     }
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Processes a key press while assigning player controls.
+ *
+ * Reserved and duplicate keys are rejected; Escape cancels an assignment or
+ * exits setup.
+ * @param key Physical key scan code received from the engine.
+ * @return None.
+ */
+//-----------------------------------------------------------------------
 void Galaga::HandleKeySetupKey(unsigned int key)
 {
     if (key == CMPUT350::Key::Escape) {
@@ -206,6 +259,14 @@ void Galaga::HandleKeySetupKey(unsigned int key)
     mSetupStatus = "Binding saved. Choose another action or press Escape.";
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Resets gameplay data and begins a new recorded session.
+ *
+ * Implemented with the help of AI.
+ * @return None.
+ */
+//-----------------------------------------------------------------------
 void Galaga::StartNewGame()
 {
     ClearPlayfield();
@@ -221,6 +282,17 @@ void Galaga::StartNewGame()
     EnterState(GameState::Startup);
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Starts the recorded demo after the title-screen coin grace period.
+ *
+ * Only start and player-control notifications are replayed. If no valid
+ * recording exists, replay is marked complete instead.
+ * Implemented with the help of AI.
+ * @param context The current engine context.
+ * @return None.
+ */
+//-----------------------------------------------------------------------
 void Galaga::BeginReplay(CMPUT350::GameContext* context)
 {
     if (context == nullptr || mNotifications == nullptr || state != GameState::Title) {
@@ -257,6 +329,16 @@ void Galaga::BeginReplay(CMPUT350::GameContext* context)
     }
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Advances the game state and schedules level gameplay.
+ *
+ * Coordinates title replay, enemy wave entry, attack timing, and safe
+ * respawning. Implemented with the help of AI.
+ * @param context The current frame, engine, and rendering context.
+ * @return None.
+ */
+//-----------------------------------------------------------------------
 void Galaga::Update(CMPUT350::GameContext* context)
 {
     if (mStateStartFrame < 0) {
@@ -338,6 +420,13 @@ void Galaga::Update(CMPUT350::GameContext* context)
     }
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Adds a player ship at the bottom-center home position.
+ * @param context The engine context used to queue the player object.
+ * @return None.
+ */
+//-----------------------------------------------------------------------
 void Galaga::SpawnPlayer(CMPUT350::GameContext* context)
 {
     if (context == nullptr || context->mEngineView == nullptr) {
@@ -350,6 +439,17 @@ void Galaga::SpawnPlayer(CMPUT350::GameContext* context)
     mPlayerAlive = true;
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Selects up to three formation enemies to launch attacks.
+ *
+ * Attack selection is deterministic; every fourth group can include an
+ * armored enemy's capture attempt when an active player is available.
+ * Implemented with the help of AI.
+ * @param context The current game context used to target and launch attacks.
+ * @return None.
+ */
+//-----------------------------------------------------------------------
 void Galaga::SelectAttacks(CMPUT350::GameContext* context)
 {
     if (context == nullptr || mEngine == nullptr || !mPlayerAlive) {
@@ -418,6 +518,13 @@ void Galaga::SelectAttacks(CMPUT350::GameContext* context)
     ++mAttackCounter;
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Finds the living player's position, or returns the default home point.
+ * @param context The current game context.
+ * @return The active player's location or the playfield's bottom-center point.
+ */
+//-----------------------------------------------------------------------
 CMPUT350::Point2D Galaga::PlayerTarget(CMPUT350::GameContext* context)
 {
     if (context != nullptr && mEngine != nullptr) {
@@ -432,6 +539,15 @@ CMPUT350::Point2D Galaga::PlayerTarget(CMPUT350::GameContext* context)
     return CMPUT350::Point2D(mWidth / 2.0f, 900.0f);
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Checks whether all living enemies have returned to formation.
+ *
+ * Implemented with the help of AI.
+ * @param context The engine context used to inspect active game objects.
+ * @return true if every living enemy is in formation; otherwise false.
+ */
+//-----------------------------------------------------------------------
 bool Galaga::AllEnemiesInFormation(CMPUT350::GameContext* context)
 {
     if (context == nullptr || mEngine == nullptr) {
@@ -448,6 +564,13 @@ bool Galaga::AllEnemiesInFormation(CMPUT350::GameContext* context)
     return true;
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Respawns a reserve ship after the delay and formation safety checks.
+ * @param context The current frame and engine context.
+ * @return None.
+ */
+//-----------------------------------------------------------------------
 void Galaga::TryRespawn(CMPUT350::GameContext* context)
 {
     if (context == nullptr || context->mEngineView == nullptr ||
@@ -474,6 +597,13 @@ void Galaga::LateUpdate(CMPUT350::GameContext* context)
     
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Draws the title, keyboard setup, and gameplay status overlays.
+ * @param context The engine context containing the GUI drawing context.
+ * @return None.
+ */
+//-----------------------------------------------------------------------
 void Galaga::RenderUI(CMPUT350::GameContext* context)
 {
     if (context == nullptr || context->GUIContext == nullptr) {
@@ -568,6 +698,13 @@ void Galaga::RenderUI(CMPUT350::GameContext* context)
 
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Handles coin, start, setup, and object-destruction notifications.
+ * @param notification Name of the notification being delivered.
+ * @return None.
+ */
+//-----------------------------------------------------------------------
 void Galaga::ReceiveNotification(const std::string& notification)
 {
     if (state == GameState::KeySetup) {
@@ -653,6 +790,13 @@ void Galaga::Kill()
 {
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Changes the game state and performs that state's entry setup.
+ * @param newState State to enter.
+ * @return None.
+ */
+//-----------------------------------------------------------------------
 void Galaga::EnterState(GameState newState)
 {
     mStateStartFrame = -1;
@@ -702,6 +846,14 @@ void Galaga::EnterState(GameState newState)
     state = newState;
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Removes active player, enemy, and bullet objects without scoring.
+ *
+ * Implemented with the help of AI.
+ * @return None.
+ */
+//-----------------------------------------------------------------------
 void Galaga::ClearPlayfield()
 {
     if (mEngine == nullptr) {
@@ -726,6 +878,12 @@ void Galaga::ClearPlayfield()
     mRespawnFrame = -1;
 }
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Adds points once for the most recently destroyed enemy.
+ * @return None.
+ */
+//-----------------------------------------------------------------------
 void Galaga::ClaimEnemyScore()
 {
     if (mEngine == nullptr) {
