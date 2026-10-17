@@ -10,7 +10,10 @@
 namespace {
 
 constexpr float kEnemyRadius = 15.0f;
-constexpr float kEntrySpeed = 3.0f;
+constexpr float kEntrySpeed = 5.0f;
+constexpr float kScoutAttackSpeed = 7.5f;
+constexpr float kWeaverAttackSpeed = 5.5f;
+constexpr float kArmoredAttackSpeed = 4.5f;
 constexpr int kSamplesPerBezierSegment = 40;
 // How close the player must be for a capture run to grab it. This is slightly
 // larger than the combined collision radii so the grab happens before the two
@@ -752,7 +755,7 @@ bool EnemyScout::Attack(
         end
     };
 
-    if (!BeginAttackPath(path, 5.0f))
+    if (!BeginAttackPath(path, kScoutAttackSpeed))
     {
         return false;
     }
@@ -822,7 +825,7 @@ bool EnemyWeaver::Attack(
         end
     };
 
-    if (!BeginAttackPath(path, 3.5f))
+    if (!BeginAttackPath(path, kWeaverAttackSpeed))
     {
         return false;
     }
@@ -899,7 +902,7 @@ bool EnemyArmored::Attack(
         end
     };
 
-    if (!BeginAttackPath(path, 2.5f))
+    if (!BeginAttackPath(path, kArmoredAttackSpeed))
     {
         return false;
     }

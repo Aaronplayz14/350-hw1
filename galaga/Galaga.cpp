@@ -15,6 +15,7 @@ constexpr char kCoin[] = "galaga.coin";
 constexpr char kStart[] = "galaga.start";
 constexpr char kKeySetup[] = "galaga.key.setup";
 constexpr char kRawKeyPrefix[] = "galaga.raw.key.";
+constexpr int kReplayCoinGraceFrames = 150;
 
 std::string RawKeyNotification(unsigned int key)
 {
@@ -264,7 +265,8 @@ void Galaga::Update(CMPUT350::GameContext* context)
 
     switch (state) {
         case GameState::Title:
-            if (mCoins == 0 && !mReplaying && !mReplayDone) {
+            if (mCoins == 0 && !mReplaying && !mReplayDone &&
+                context->currentFrame - mStateStartFrame >= kReplayCoinGraceFrames) {
                 BeginReplay(context);
             }
             break;
