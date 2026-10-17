@@ -20,7 +20,7 @@ Bullet::Bullet(CMPUT350::Point2D location, CMPUT350::Vector2D heading, bool play
 {
     // Segment points from where the bullet was toward where it is now, so the
     // collision line matches the direction the bullet just travelled.
-    mShapes.push_back(CMPUT350::Shape(CMPUT350::Line(-(heading.x), -(heading.y), 0.0f, 0.0f)));
+    mShapes.push_back(CMPUT350::Shape(CMPUT350::Line(0.0f, 0.0f, -(heading.x), -(heading.y))));
 }
 
 //-----------------------------------------------------------------------
