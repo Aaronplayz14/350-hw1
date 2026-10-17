@@ -1,6 +1,7 @@
-#include "GameContext.h"
-#include "DrawContext.h"
 #include "Stars.h"
+
+#include "DrawContext.h"
+#include "GameContext.h"
 
 //-----------------------------------------------------------------------
 /**
@@ -13,17 +14,14 @@
  * @param bounds Region the stars are scattered across and scroll within.
  */
 //-----------------------------------------------------------------------
-Stars::Stars(int numStars, CMPUT350::Rect bounds)
-    : mBounds(bounds), gen(rd())
-{
+Stars::Stars(int numStars, CMPUT350::Rect bounds) : mBounds(bounds), gen(rd()) {
     // Distributions are built once and reused per star, so each draw samples
     // independently but no new distribution is constructed per iteration.
     std::uniform_int_distribution<int> mXRand(bounds.topLeft.x, bounds.topLeft.x + bounds.width);
     std::uniform_int_distribution<int> mYRand(bounds.topLeft.y, bounds.topLeft.y + bounds.height);
     // Generate random star positions within the bounds. Done once here rather
     // than per frame so the field is stable instead of flickering.
-    for (int x = 0; x < numStars; x++)
-    {
+    for (int x = 0; x < numStars; x++) {
         mStarPositions.emplace_back(mXRand(gen), mYRand(gen));
     }
 }
@@ -42,26 +40,22 @@ Stars::Stars(int numStars, CMPUT350::Rect bounds)
  * @return None. Star positions are advanced as a side effect.
  */
 //-----------------------------------------------------------------------
-void Stars::RenderBackground(CMPUT350::GameContext* context)
-{
-    CMPUT350::RGBColor c[4] = {
-        CMPUT350::Colors::white, CMPUT350::Colors::cyan, CMPUT350::Colors::magenta, CMPUT350::Colors::white
-    };
+void Stars::RenderBackground(CMPUT350::GameContext* context) {
+    CMPUT350::RGBColor c[4] = {CMPUT350::Colors::white, CMPUT350::Colors::cyan,
+                               CMPUT350::Colors::magenta, CMPUT350::Colors::white};
     // skip counts frames and only advances every 5, so the pattern below
     // changes slowly and reads as twinkling rather than flicker.
     static int skip = 0;
     int curr = 0;
     skip++;
-    for (auto& star : mStarPositions)
-    {
+    for (auto& star : mStarPositions) {
         curr++;
         // Skipping one star per group makes stars blink out briefly.
         if ((curr + skip / 5) % (mStarPositions.size() / 20) != 0)
             context->ScreenContext->DrawCircle(star, 1.0f, c[(curr) % 4]);
         // Wrap by the full height once past the bottom, reusing the same rows.
         star.y += 3;
-        if (star.y > mBounds.topLeft.y + mBounds.height)
-            star.y -= mBounds.height;
+        if (star.y > mBounds.topLeft.y + mBounds.height) star.y -= mBounds.height;
     }
 }
 
@@ -75,10 +69,7 @@ void Stars::RenderBackground(CMPUT350::GameContext* context)
  * @return The origin.
  */
 //-----------------------------------------------------------------------
-CMPUT350::Point2D Stars::GetLocation() const
-{
-    return CMPUT350::Point2D(0.0f, 0.0f);
-}
+CMPUT350::Point2D Stars::GetLocation() const { return CMPUT350::Point2D(0.0f, 0.0f); }
 
 //-----------------------------------------------------------------------
 /**
@@ -86,7 +77,4 @@ CMPUT350::Point2D Stars::GetLocation() const
  * @return 0 radians.
  */
 //-----------------------------------------------------------------------
-float Stars::GetRotation() const
-{
-    return 0.0f;
-}
+float Stars::GetRotation() const { return 0.0f; }

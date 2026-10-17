@@ -9,6 +9,17 @@ namespace CMPUT350 {
 // Construction
 //-----------------------------------------------------------------------
 
+//-----------------------------------------------------------------------
+/**
+ * @brief Creates a drawing context for an existing window and font.
+ *
+ * The context shares ownership of both resources through shared pointers and
+ * uses them for drawing text and shapes.
+ *
+ * @param window The render window to draw onto; must not be null.
+ * @param font The font used to draw text; must not be null.
+ */
+//-----------------------------------------------------------------------
 DrawContext::DrawContext(std::shared_ptr<sf::RenderWindow> window, std::shared_ptr<sf::Font> font)
     : mWindow(window), mFont(font) {}
 
@@ -16,15 +27,9 @@ DrawContext::DrawContext(std::shared_ptr<sf::RenderWindow> window, std::shared_p
 // Transform state
 //-----------------------------------------------------------------------
 
-void DrawContext::SetContextOffset(Point2D offset)
-{
-    mContextOffset = offset;
-}
+void DrawContext::SetContextOffset(Point2D offset) { mContextOffset = offset; }
 
-void DrawContext::SetContextRotation(float rotation)
-{
-    mContextRotation = rotation;
-}
+void DrawContext::SetContextRotation(float rotation) { mContextRotation = rotation; }
 
 //-----------------------------------------------------------------------
 /**
@@ -37,14 +42,12 @@ void DrawContext::SetContextRotation(float rotation)
  * @return The same point in world coordinates.
  */
 //-----------------------------------------------------------------------
-Point2D DrawContext::Transform(Point2D p) const
-{
+Point2D DrawContext::Transform(Point2D p) const {
     const float cosine = std::cos(mContextRotation);
     const float sine = std::sin(mContextRotation);
 
-    return Point2D(
-        mContextOffset.x + p.x * cosine - p.y * sine,
-        mContextOffset.y + p.x * sine + p.y * cosine);
+    return Point2D(mContextOffset.x + p.x * cosine - p.y * sine,
+                   mContextOffset.y + p.x * sine + p.y * cosine);
 }
 
 //-----------------------------------------------------------------------
@@ -59,8 +62,7 @@ Point2D DrawContext::Transform(Point2D p) const
  * @return The same point in the current object's local coordinates.
  */
 //-----------------------------------------------------------------------
-Point2D DrawContext::ReverseTransform(Point2D p) const
-{
+Point2D DrawContext::ReverseTransform(Point2D p) const {
     // Undo the shift first, so what is left is the rotation component.
     const float x = p.x - mContextOffset.x;
     const float y = p.y - mContextOffset.y;
@@ -68,9 +70,7 @@ Point2D DrawContext::ReverseTransform(Point2D p) const
     const float cosine = std::cos(mContextRotation);
     const float sine = std::sin(mContextRotation);
 
-    return Point2D(
-        x * cosine + y * sine,
-        -x * sine + y * cosine);
+    return Point2D(x * cosine + y * sine, -x * sine + y * cosine);
 }
 
 //-----------------------------------------------------------------------
@@ -86,18 +86,21 @@ Point2D DrawContext::ReverseTransform(Point2D p) const
  * @return An axis-aligned bounding box in world coordinates.
  */
 //-----------------------------------------------------------------------
-Rect DrawContext::Transform(Rect r) const
-{
+Rect DrawContext::Transform(Rect r) const {
     // Rotating tilts each corner, so transform all four before measuring.
     const Point2D topLeft = Transform(r.topLeft);
     const Point2D topRight = Transform(Point2D(r.topLeft.x + r.width, r.topLeft.y));
     const Point2D bottomLeft = Transform(Point2D(r.topLeft.x, r.topLeft.y + r.height));
     const Point2D bottomRight = Transform(Point2D(r.topLeft.x + r.width, r.topLeft.y + r.height));
 
-    const float left = std::min(std::min(topLeft.x, topRight.x), std::min(bottomLeft.x, bottomRight.x));
-    const float right = std::max(std::max(topLeft.x, topRight.x), std::max(bottomLeft.x, bottomRight.x));
-    const float top = std::min(std::min(topLeft.y, topRight.y), std::min(bottomLeft.y, bottomRight.y));
-    const float bottom = std::max(std::max(topLeft.y, topRight.y), std::max(bottomLeft.y, bottomRight.y));
+    const float left =
+        std::min(std::min(topLeft.x, topRight.x), std::min(bottomLeft.x, bottomRight.x));
+    const float right =
+        std::max(std::max(topLeft.x, topRight.x), std::max(bottomLeft.x, bottomRight.x));
+    const float top =
+        std::min(std::min(topLeft.y, topRight.y), std::min(bottomLeft.y, bottomRight.y));
+    const float bottom =
+        std::max(std::max(topLeft.y, topRight.y), std::max(bottomLeft.y, bottomRight.y));
 
     return Rect(left, top, right - left, bottom - top);
 }
@@ -113,8 +116,7 @@ Rect DrawContext::Transform(Rect r) const
  * @return None. The text is drawn immediately onto the window.
  */
 //-----------------------------------------------------------------------
-void DrawContext::DrawText(const std::string& text, int pixelSize, Point2D p, RGBColor c)
-{
+void DrawContext::DrawText(const std::string& text, int pixelSize, Point2D p, RGBColor c) {
     sf::Text label(*mFont, text, static_cast<unsigned int>(pixelSize));
     label.setFillColor(sf::Color(c.r, c.g, c.b));
 
@@ -140,15 +142,14 @@ void DrawContext::DrawText(const std::string& text, int pixelSize, Point2D p, RG
  * @return None. The text is drawn immediately onto the window.
  */
 //-----------------------------------------------------------------------
-void DrawContext::DrawCenteredText(const std::string& text, int pixelSize, Point2D p, RGBColor c)
-{
+void DrawContext::DrawCenteredText(const std::string& text, int pixelSize, Point2D p, RGBColor c) {
     sf::Text label(*mFont, text, static_cast<unsigned int>(pixelSize));
     label.setFillColor(sf::Color(c.r, c.g, c.b));
 
     // Shift by half the bounds so p lands on the centre of the glyphs.
     const sf::FloatRect bounds = label.getLocalBounds();
-    label.setOrigin({bounds.position.x + bounds.size.x / 2.0f,
-                     bounds.position.y + bounds.size.y / 2.0f});
+    label.setOrigin(
+        {bounds.position.x + bounds.size.x / 2.0f, bounds.position.y + bounds.size.y / 2.0f});
 
     const Point2D worldPosition = Transform(p);
     label.setPosition({worldPosition.x, worldPosition.y});
@@ -171,8 +172,7 @@ void DrawContext::DrawCenteredText(const std::string& text, int pixelSize, Point
  * @return None. The circle is drawn immediately onto the window.
  */
 //-----------------------------------------------------------------------
-void DrawContext::DrawCircle(Point2D p, float radius, RGBColor c)
-{
+void DrawContext::DrawCircle(Point2D p, float radius, RGBColor c) {
     sf::CircleShape circle(radius);
     circle.setFillColor(sf::Color(c.r, c.g, c.b));
     circle.setOrigin({radius, radius});
@@ -196,8 +196,7 @@ void DrawContext::DrawCircle(Point2D p, float radius, RGBColor c)
  * @return None. The rectangle is drawn immediately onto the window.
  */
 //-----------------------------------------------------------------------
-void DrawContext::DrawRect(Rect r, RGBColor c)
-{
+void DrawContext::DrawRect(Rect r, RGBColor c) {
     sf::RectangleShape rect({r.width, r.height});
     rect.setFillColor(sf::Color(c.r, c.g, c.b));
 
@@ -221,8 +220,7 @@ void DrawContext::DrawRect(Rect r, RGBColor c)
  * @return None. The outline is drawn immediately onto the window.
  */
 //-----------------------------------------------------------------------
-void DrawContext::FrameRect(Rect r, float width, RGBColor c)
-{
+void DrawContext::FrameRect(Rect r, float width, RGBColor c) {
     sf::RectangleShape rect({r.width, r.height});
     rect.setFillColor(sf::Color::Transparent);
     rect.setOutlineThickness(width);
@@ -254,8 +252,7 @@ void DrawContext::FrameRect(Rect r, float width, RGBColor c)
  * @return None. The line is drawn immediately onto the window.
  */
 //-----------------------------------------------------------------------
-void DrawContext::DrawLine(Point2D from, Point2D to, float width, RGBColor c)
-{
+void DrawContext::DrawLine(Point2D from, Point2D to, float width, RGBColor c) {
     from = Transform(from);
     to = Transform(to);
 
@@ -266,8 +263,7 @@ void DrawContext::DrawLine(Point2D from, Point2D to, float width, RGBColor c)
     // Half the width, perpendicular to the segment, is the only offset needed.
     float nx = 0.0f;
     float ny = 0.0f;
-    if (length > 0.0f)
-    {
+    if (length > 0.0f) {
         nx = -dy / length * width / 2.0f;
         ny = dx / length * width / 2.0f;
     }

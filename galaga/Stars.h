@@ -1,11 +1,11 @@
 #ifndef STARS_H
 #define STARS_H
 
-#include "GraphicsObject.h"
 #include <random>
 
-class Stars : public CMPUT350::GraphicsObject
-{
+#include "GraphicsObject.h"
+
+class Stars : public CMPUT350::GraphicsObject {
 public:
     Stars(int numStars, CMPUT350::Rect bounds);
     void RenderBackground(CMPUT350::GameContext* context) override;
@@ -19,5 +19,4 @@ private:
     std::mt19937 gen;
 };
 
-
-#endif // STARS_H
+#endif  // STARS_H

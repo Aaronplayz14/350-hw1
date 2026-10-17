@@ -39,9 +39,9 @@ public:
     DrawContext(std::shared_ptr<sf::RenderWindow> window, std::shared_ptr<sf::Font> font);
 
     /// @brief Draws text with its top-left at p (local space).
-    void DrawText(const std::string &text, int pixelSize, Point2D p, RGBColor c);
+    void DrawText(const std::string& text, int pixelSize, Point2D p, RGBColor c);
     /// @brief Draws text centred on p (local space).
-    void DrawCenteredText(const std::string &text, int pixelSize, Point2D p, RGBColor c);
+    void DrawCenteredText(const std::string& text, int pixelSize, Point2D p, RGBColor c);
     /// @brief Draws a filled circle centred on p (local space).
     void DrawCircle(Point2D p, float radius, RGBColor c);
     /// @brief Draws a filled rectangle (local space).

@@ -18,10 +18,7 @@ namespace CMPUT350 {
  * @return None.
  */
 //-----------------------------------------------------------------------
-void NotificationManager::Register(
-    std::weak_ptr<GameObject> object,
-    const std::string& key)
-{
+void NotificationManager::Register(std::weak_ptr<GameObject> object, const std::string& key) {
     // Do not register an invalid object or an empty notification key.
     if (object.expired() || key.empty()) {
         return;
@@ -31,8 +28,7 @@ void NotificationManager::Register(
 
     // Avoid registering the same object for the same key twice.
     for (const auto& listener : listeners) {
-        if (!listener.owner_before(object) &&
-            !object.owner_before(listener)) {
+        if (!listener.owner_before(object) && !object.owner_before(listener)) {
             return;
         }
     }
@@ -51,10 +47,7 @@ void NotificationManager::Register(
  * @return None.
  */
 //-----------------------------------------------------------------------
-void NotificationManager::Unregister(
-    std::weak_ptr<GameObject> object,
-    const std::string& key)
-{
+void NotificationManager::Unregister(std::weak_ptr<GameObject> object, const std::string& key) {
     auto found = mListeners.find(key);
 
     if (found == mListeners.end()) {
@@ -63,20 +56,15 @@ void NotificationManager::Unregister(
 
     auto& listeners = found->second;
 
-    listeners.erase(
-        std::remove_if(
-            listeners.begin(),
-            listeners.end(),
-            [&](const std::weak_ptr<GameObject>& listener) {
-                // Remove expired listeners as well as the requested object.
-                const bool sameObject =
-                    !listener.owner_before(object) &&
-                    !object.owner_before(listener);
+    listeners.erase(std::remove_if(listeners.begin(), listeners.end(),
+                                   [&](const std::weak_ptr<GameObject>& listener) {
+                                       // Remove expired listeners as well as the requested object.
+                                       const bool sameObject = !listener.owner_before(object) &&
+                                                               !object.owner_before(listener);
 
-                return listener.expired() || sameObject;
-            }),
-        listeners.end()
-    );
+                                       return listener.expired() || sameObject;
+                                   }),
+                    listeners.end());
 
     if (listeners.empty()) {
         mListeners.erase(found);
@@ -90,8 +78,7 @@ void NotificationManager::Unregister(
  * @return None.
  */
 //-----------------------------------------------------------------------
-void NotificationManager::Notify(const std::string& message)
-{
+void NotificationManager::Notify(const std::string& message) {
     if (mIsRecording && !mIsReplaying) {
         mRecordedEvents.push_back({mCurrentFrame - mRecordingStartFrame, message});
     }
@@ -105,8 +92,7 @@ void NotificationManager::Notify(const std::string& message)
  * @return None.
  */
 //-----------------------------------------------------------------------
-void NotificationManager::StartRecording()
-{
+void NotificationManager::StartRecording() {
     mRecordedEvents.clear();
     mRecordingStartFrame = mCurrentFrame;
     mIsRecording = true;
@@ -119,10 +105,7 @@ void NotificationManager::StartRecording()
  * @return None.
  */
 //-----------------------------------------------------------------------
-void NotificationManager::StopRecording()
-{
-    mIsRecording = false;
-}
+void NotificationManager::StopRecording() { mIsRecording = false; }
 
 //-----------------------------------------------------------------------
 /**
@@ -130,9 +113,8 @@ void NotificationManager::StopRecording()
  * @return A reference to the recording buffer.
  */
 //-----------------------------------------------------------------------
-const std::vector<NotificationManager::RecordedEvent>&
-NotificationManager::GetRecordedEvents() const
-{
+const std::vector<NotificationManager::RecordedEvent>& NotificationManager::GetRecordedEvents()
+    const {
     return mRecordedEvents;
 }
 
@@ -142,8 +124,7 @@ NotificationManager::GetRecordedEvents() const
  * @return true if there was something to replay, false otherwise.
  */
 //-----------------------------------------------------------------------
-bool NotificationManager::StartReplay()
-{
+bool NotificationManager::StartReplay() {
     return StartReplay([](const std::string&) { return true; });
 }
 
@@ -159,9 +140,7 @@ bool NotificationManager::StartReplay()
  * @return true if at least one event was selected, false otherwise.
  */
 //-----------------------------------------------------------------------
-bool NotificationManager::StartReplay(
-    const std::function<bool(const std::string&)>& filter)
-{
+bool NotificationManager::StartReplay(const std::function<bool(const std::string&)>& filter) {
     mPlaybackEvents.clear();
 
     for (const auto& event : mRecordedEvents) {
@@ -187,8 +166,7 @@ bool NotificationManager::StartReplay(
  * @return None.
  */
 //-----------------------------------------------------------------------
-void NotificationManager::StopReplay()
-{
+void NotificationManager::StopReplay() {
     mIsReplaying = false;
     mPlaybackEvents.clear();
     mPlaybackIndex = 0;
@@ -200,10 +178,7 @@ void NotificationManager::StopReplay()
  * @return true while replaying.
  */
 //-----------------------------------------------------------------------
-bool NotificationManager::IsReplaying() const
-{
-    return mIsReplaying;
-}
+bool NotificationManager::IsReplaying() const { return mIsReplaying; }
 
 //-----------------------------------------------------------------------
 /**
@@ -216,15 +191,14 @@ bool NotificationManager::IsReplaying() const
  * @return None.
  */
 //-----------------------------------------------------------------------
-void NotificationManager::AdvanceFrame(int frame)
-{
+void NotificationManager::AdvanceFrame(int frame) {
     mCurrentFrame = frame;
     if (!mIsReplaying) {
         return;
     }
 
     while (mPlaybackIndex < mPlaybackEvents.size() &&
-        mPlaybackEvents[mPlaybackIndex].frame <= frame - mPlaybackStartFrame) {
+           mPlaybackEvents[mPlaybackIndex].frame <= frame - mPlaybackStartFrame) {
         Deliver(mPlaybackEvents[mPlaybackIndex].message);
         ++mPlaybackIndex;
     }
@@ -247,8 +221,7 @@ void NotificationManager::AdvanceFrame(int frame)
  * @return None.
  */
 //-----------------------------------------------------------------------
-void NotificationManager::Deliver(const std::string& message)
-{
+void NotificationManager::Deliver(const std::string& message) {
     auto found = mListeners.find(message);
 
     if (found == mListeners.end()) {
@@ -258,16 +231,12 @@ void NotificationManager::Deliver(const std::string& message)
     auto& listeners = found->second;
 
     // Remove expired and dead listeners before delivering notifications.
-    listeners.erase(
-        std::remove_if(
-            listeners.begin(),
-            listeners.end(),
-            [](const std::weak_ptr<GameObject>& listener) {
-                const auto object = listener.lock();
-                return !object || !object->IsAlive();
-            }),
-        listeners.end()
-    );
+    listeners.erase(std::remove_if(listeners.begin(), listeners.end(),
+                                   [](const std::weak_ptr<GameObject>& listener) {
+                                       const auto object = listener.lock();
+                                       return !object || !object->IsAlive();
+                                   }),
+                    listeners.end());
 
     const auto listenersSnapshot = listeners;
     for (const auto& listener : listenersSnapshot) {
@@ -279,4 +248,4 @@ void NotificationManager::Deliver(const std::string& message)
     }
 }
 
-} // namespace CMPUT350
+}  // namespace CMPUT350

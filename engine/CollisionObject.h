@@ -10,9 +10,7 @@
 namespace CMPUT350 {
 
 /// @brief The kinds of primitive a collision shape can be.
-enum class ShapeType {
-    kLine, kCircle, kRect
-};
+enum class ShapeType { kLine, kCircle, kRect };
 
 //-----------------------------------------------------------------------
 /**
@@ -27,7 +25,7 @@ union ShapeUnion {
     ShapeUnion(Rect r) : rect(r) {}
     Line line;
     Circle circle;
-    Rect rect; // Axis-aligned rectangle
+    Rect rect;  // Axis-aligned rectangle
 };
 
 //-----------------------------------------------------------------------
@@ -39,9 +37,9 @@ union ShapeUnion {
  */
 //-----------------------------------------------------------------------
 struct Shape {
-    Shape(const Line &l) : shape(l), t(ShapeType::kLine) {}
-    Shape(const Circle &c) : shape(c), t(ShapeType::kCircle) {}
-    Shape(const Rect &r) : shape(r), t(ShapeType::kRect) {}
+    Shape(const Line& l) : shape(l), t(ShapeType::kLine) {}
+    Shape(const Circle& c) : shape(c), t(ShapeType::kCircle) {}
+    Shape(const Rect& r) : shape(r), t(ShapeType::kRect) {}
     ShapeUnion shape;
     ShapeType t;
 };
@@ -65,14 +63,16 @@ struct Shape {
 class CollisionObject : public GraphicsObject {
 public:
     /// @brief Called when this object collides with another; no point given.
-    virtual void CollisionEnter(const std::shared_ptr<CollisionObject> &obj) = 0;
+    virtual void CollisionEnter(const std::shared_ptr<CollisionObject>& obj) = 0;
     /// @brief Called when the collision has a single contact point in local space.
-    virtual void CollisionEnter(const std::shared_ptr<CollisionObject> &obj, const Point2D &collisionPoint)
-	    { CollisionEnter(obj); }
+    virtual void CollisionEnter(const std::shared_ptr<CollisionObject>& obj,
+                                const Point2D& collisionPoint) {
+        CollisionEnter(obj);
+    }
     /// @brief World-space bounding box used for the cheap overlap test.
-    virtual const Rect &GetBounds() = 0;
+    virtual const Rect& GetBounds() = 0;
     /// @brief Local-space primitives that define the exact collision volume.
-    virtual const std::vector<Shape> &GetShapes() = 0;
+    virtual const std::vector<Shape>& GetShapes() = 0;
 };
 
 }  // namespace CMPUT350

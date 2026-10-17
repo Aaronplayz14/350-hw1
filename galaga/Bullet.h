@@ -21,8 +21,7 @@
  * the bullet dies with it, and the reference never keeps the owner alive.
  */
 //-----------------------------------------------------------------------
-class Bullet : public CMPUT350::CollisionObject
-{
+class Bullet : public CMPUT350::CollisionObject {
 public:
     /**
      * @brief Creates a bullet that moves a fixed amount each frame.
@@ -31,7 +30,8 @@ public:
      * @param player true for a player bullet, false for an enemy bullet.
      * @param parent The object that fired this bullet, held weakly.
      */
-    Bullet(CMPUT350::Point2D location, CMPUT350::Vector2D heading, bool player, std::weak_ptr<CMPUT350::GameObject> parent);
+    Bullet(CMPUT350::Point2D location, CMPUT350::Vector2D heading, bool player,
+           std::weak_ptr<CMPUT350::GameObject> parent);
 
     /// @brief True if this bullet was fired by the player.
     bool IsPlayerBullet() const;
@@ -51,21 +51,23 @@ public:
 
     // Collision Object Functions
     void CollisionEnter(const std::shared_ptr<CMPUT350::CollisionObject>& obj) override;
-    void CollisionEnter(const std::shared_ptr<CMPUT350::CollisionObject>& obj, const CMPUT350::Point2D& collisionPoint) override;
+    void CollisionEnter(const std::shared_ptr<CMPUT350::CollisionObject>& obj,
+                        const CMPUT350::Point2D& collisionPoint) override;
     const CMPUT350::Rect& GetBounds() override;
     const std::vector<CMPUT350::Shape>& GetShapes() override;
-private:
-    CMPUT350::Point2D mLocation;         // Current world position.
-    CMPUT350::Point2D mPreviousLocation; // Position at the start of this frame.
-    CMPUT350::Vector2D mHeading;         // Per-frame displacement (velocity).
 
-    bool mPlayer;                        // Which side fired this bullet.
-    std::weak_ptr<CMPUT350::GameObject> mParent; // The firing object.
-    bool mAlive;                         // Removed by the engine once false.
-    bool mDestroyed;                     // True after hitting a target.
-    bool mHasCollisionPoint;             // Whether mCollisionPoint is valid.
-    CMPUT350::Point2D mCollisionPoint;   // Local impact point used when destroyed.
-    CMPUT350::Rect mBounds;              // World-space broad-phase box.
-    std::vector<CMPUT350::Shape> mShapes; // Single swept line segment.
+private:
+    CMPUT350::Point2D mLocation;          // Current world position.
+    CMPUT350::Point2D mPreviousLocation;  // Position at the start of this frame.
+    CMPUT350::Vector2D mHeading;          // Per-frame displacement (velocity).
+
+    bool mPlayer;                                 // Which side fired this bullet.
+    std::weak_ptr<CMPUT350::GameObject> mParent;  // The firing object.
+    bool mAlive;                                  // Removed by the engine once false.
+    bool mDestroyed;                              // True after hitting a target.
+    bool mHasCollisionPoint;                      // Whether mCollisionPoint is valid.
+    CMPUT350::Point2D mCollisionPoint;            // Local impact point used when destroyed.
+    CMPUT350::Rect mBounds;                       // World-space broad-phase box.
+    std::vector<CMPUT350::Shape> mShapes;         // Single swept line segment.
 };
-#endif // BULLET_H
+#endif  // BULLET_H

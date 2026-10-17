@@ -1,28 +1,18 @@
+#include "Player.h"
+
 #include <algorithm>
 #include <cmath>
 
-#include "Player.h"
 #include "Bullet.h"
 #include "Enemy.h"
-#include "GraphicsObject.h"
 #include "NotificationManager.h"
 
 namespace {
 
 // Half the ship's width, used to keep the hull inside the window.
 constexpr float kHalfWidth = 20.0f;
-// A double ship is wider because the captured fighter docks alongside.
-constexpr float kDoubleHalfWidth = 34.0f;
-// Horizontal gap between the two hulls of a double ship.
-constexpr float kDoubleOffset = 14.0f;
-// Row the ship returns to after being freed from a capture.
-constexpr float kHomeRowY = 900.0f;
-// Pixels per frame the ship falls while dropping back into play.
-constexpr float kDropSpeed = 14.0f;
-// Radians per frame the captured ship spins.
-constexpr float kCaptureSpin = 0.15f;
 
-} // namespace
+}  // namespace
 
 //-----------------------------------------------------------------------
 /**
@@ -42,12 +32,7 @@ Player::Player(CMPUT350::Point2D loc)
       mMoveLeft(false),
       mMoveRight(false),
       mFireRequested(false),
-      mNotificationManager(nullptr),
-      mState(State::Active),
-      mDoubleShip(false),
-      mRotation(0.0f),
-      mDropTargetY(kHomeRowY)
-{
+      mNotificationManager(nullptr) {
     RefreshBounds();
 }
 
@@ -56,20 +41,17 @@ Player::Player(CMPUT350::Point2D loc)
  * @brief Caches the notification manager and subscribes to input events.
  *
  * The engine sets CurrObject to this player before calling Initialize, so the
- * weak self-reference lets the ship register for the movement, shooting, and
- * (for the keyboard setup screen) notification names the Galaga manager
- * registered with the engine.
+ * weak self-reference lets the ship register for the movement and shooting
+ * notifications installed by the Galaga manager.
  * @param context The engine's per-frame context.
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Player::Initialize(CMPUT350::GameContext* context)
-{
+void Player::Initialize(CMPUT350::GameContext* context) {
     // The engine sets CurrObject to this player before calling Initialize.
     const std::weak_ptr<CMPUT350::GameObject> self = context->CurrObject;
 
-    if (self.expired() || context->mNotificationManager == nullptr)
-    {
+    if (self.expired() || context->mNotificationManager == nullptr) {
         return;
     }
 
@@ -86,60 +68,31 @@ void Player::Initialize(CMPUT350::GameContext* context)
 
 //-----------------------------------------------------------------------
 /**
- * @brief Rebuilds local hitboxes and their rotated world-space bounds.
+ * @brief Rebuilds the ship's local hitboxes and world-space bounds.
  *
- * A double ship has one hitbox per fighter. Each local rectangle is transformed
- * by the current rotation before the broad-phase bounds are calculated, so the
- * engine cannot reject a collision that the narrow phase would accept.
+ * The hull and upper-body rectangles are translated to the ship's current
+ * location before calculating the broad-phase bounds.
+ * Implemented with the help of AI.
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Player::RefreshBounds()
-{
+void Player::RefreshBounds() {
     mShapes.clear();
-    const auto addFighterShapes = [this](float offset)
-    {
-        mShapes.push_back(CMPUT350::Shape(CMPUT350::Rect(
-            offset - kHalfWidth,
-            -kHalfWidth,
-            2.0f * kHalfWidth,
-            2.0f * kHalfWidth
-        )));
-        mShapes.push_back(CMPUT350::Shape(CMPUT350::Rect(
-            offset - 5.0f,
-            -25.0f,
-            10.0f,
-            15.0f
-        )));
-    };
-
-    if (mDoubleShip)
-    {
-        addFighterShapes(-kDoubleOffset);
-        addFighterShapes(kDoubleOffset);
-    }
-    else
-    {
-        addFighterShapes(0.0f);
-    }
+    mShapes.push_back(CMPUT350::Shape(
+        CMPUT350::Rect(-kHalfWidth, -kHalfWidth, 2.0f * kHalfWidth, 2.0f * kHalfWidth)));
+    mShapes.push_back(CMPUT350::Shape(CMPUT350::Rect(-5.0f, -25.0f, 10.0f, 15.0f)));
 
     bool firstPoint = true;
     CMPUT350::Point2D minimum;
     CMPUT350::Point2D maximum;
-    for (const auto& shape : mShapes)
-    {
-        for (const auto& localPoint : shape.shape.rect.Points())
-        {
-            const CMPUT350::Point2D worldPoint =
-                localPoint.Rotate(mRotation) + mLoc;
-            if (firstPoint)
-            {
+    for (const auto& shape : mShapes) {
+        for (const auto& localPoint : shape.shape.rect.Points()) {
+            const CMPUT350::Point2D worldPoint = localPoint + mLoc;
+            if (firstPoint) {
                 minimum = worldPoint;
                 maximum = worldPoint;
                 firstPoint = false;
-            }
-            else
-            {
+            } else {
                 minimum.x = std::min(minimum.x, worldPoint.x);
                 minimum.y = std::min(minimum.y, worldPoint.y);
                 maximum.x = std::max(maximum.x, worldPoint.x);
@@ -153,81 +106,36 @@ void Player::RefreshBounds()
 
 //-----------------------------------------------------------------------
 /**
- * @brief Moves the ship, or follows its captor while captured.
+ * @brief Moves the ship in response to the held movement and fire inputs.
  *
- * While Active the direction is read from flags set by notifications and
- * applied here, so movement is frame-rate independent: the ship advances a
- * fixed distance each frame rather than once per key event. Holding both keys
- * cancels out. The position is clamped so the hull stays fully inside the
- * playfield, and the bounding box is re-derived afterwards.
- *
- * While Captured the ship is positioned above the capturing enemy and spins,
- * and while Dropping it falls back to the bottom row, both ignoring input.
+ * Direction flags are set by notifications and applied here, so the ship
+ * advances a fixed distance per frame rather than once per key event. Holding
+ * both keys cancels out. The position is clamped so the hull stays fully inside
+ * the playfield, and the bounding box is re-derived afterwards.
  *
  * @param context Supplies the window width and the engine used to spawn shots.
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Player::Update(CMPUT350::GameContext* context)
-{
-    if (!mAlive)
-    {
-        return;
-    }
-
-    // Captured: follow the enemy that holds us and spin in place.
-    if (mState == State::Captured)
-    {
-        const auto captorBase = mCaptor.lock();
-        const auto captor = std::dynamic_pointer_cast<CMPUT350::GraphicsObject>(captorBase);
-
-        if (captor == nullptr || !captorBase->IsAlive())
-        {
-            // The captor vanished without a clean release; drop as a normal ship.
-            Release(false);
-        }
-        else
-        {
-            mLoc = captor->GetLocation() + CMPUT350::Point2D(0.0f, -44.0f);
-            mRotation += kCaptureSpin;
-            RefreshBounds();
-            return;
-        }
-    }
-
-    // Dropping: fall straight back to the home row, ignoring input.
-    if (mState == State::Dropping)
-    {
-        mLoc.y += kDropSpeed;
-        if (mLoc.y >= mDropTargetY)
-        {
-            mLoc.y = mDropTargetY;
-            mState = State::Active;
-        }
-        mRotation = 0.0f;
-        RefreshBounds();
+void Player::Update(CMPUT350::GameContext* context) {
+    if (!mAlive) {
         return;
     }
 
     float direction = 0.0f;
-    if (mMoveLeft)
-    {
+    if (mMoveLeft) {
         direction -= 1.0f;
     }
-    if (mMoveRight)
-    {
+    if (mMoveRight) {
         direction += 1.0f;
     }
 
-    if (direction != 0.0f)
-    {
-        const float halfWidth = mDoubleShip ? kDoubleHalfWidth : kHalfWidth;
-        float minX = halfWidth;
-        float maxX = 768.0f - halfWidth;
+    if (direction != 0.0f) {
+        float minX = kHalfWidth;
+        float maxX = 768.0f - kHalfWidth;
 
-        if (context != nullptr && context->ScreenContext != nullptr)
-        {
-            maxX = static_cast<float>(context->ScreenContext->GetWindowWidth()) - halfWidth;
+        if (context != nullptr && context->ScreenContext != nullptr) {
+            maxX = static_cast<float>(context->ScreenContext->GetWindowWidth()) - kHalfWidth;
         }
 
         mLoc.x = std::clamp(mLoc.x + direction * mSpeed, minX, maxX);
@@ -235,120 +143,81 @@ void Player::Update(CMPUT350::GameContext* context)
 
     RefreshBounds();
 
-    if (mFireRequested)
-    {
+    if (mFireRequested) {
         mFireRequested = false;
         Fire(context);
     }
 }
 
-void Player::LateUpdate(CMPUT350::GameContext* context)
-{
-    (void)context;
-}
+void Player::LateUpdate(CMPUT350::GameContext* context) { (void)context; }
 
-void Player::RenderBackground(CMPUT350::GameContext* context)
-{
-    (void)context;
-}
+void Player::RenderBackground(CMPUT350::GameContext* context) { (void)context; }
 
 //-----------------------------------------------------------------------
 /**
  * @brief Draws the ship as a blocky Galaga-style sprite.
  *
  * The rectangles are relative to the ship's own origin, since the engine
- * applies mLoc through the DrawContext before this runs. When the ship is a
- * double fighter the same sprite is drawn twice, offset to either side.
+ * applies mLoc through the DrawContext before this runs.
  * @param context Supplies the drawing context.
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Player::RenderForeground(CMPUT350::GameContext* context)
-{
-    if (context == nullptr || context->ScreenContext == nullptr || !mAlive)
-    {
+void Player::RenderForeground(CMPUT350::GameContext* context) {
+    if (context == nullptr || context->ScreenContext == nullptr || !mAlive) {
         return;
     }
 
     auto* screen = context->ScreenContext;
 
     // Body of one fighter, centred on the given local origin.
-    const auto drawFighter = [screen](float originX)
-    {
-        screen->DrawRect(CMPUT350::Rect(originX - 5.0f, -15.0f, 10.0f, 20.0f), CMPUT350::Colors::white);
-        screen->DrawRect(CMPUT350::Rect(originX - 10.0f, -5.0f, 5.0f, 15.0f), CMPUT350::Colors::white);
-        screen->DrawRect(CMPUT350::Rect(originX + 5.0f, -5.0f, 5.0f, 15.0f), CMPUT350::Colors::white);
-        screen->DrawRect(CMPUT350::Rect(originX - 15.0f, 10.0f, 30.0f, 10.0f), CMPUT350::Colors::white);
-        screen->DrawRect(CMPUT350::Rect(originX - 20.0f, 5.0f, 5.0f, 10.0f), CMPUT350::Colors::white);
-        screen->DrawRect(CMPUT350::Rect(originX + 15.0f, 5.0f, 5.0f, 10.0f), CMPUT350::Colors::white);
+    const auto drawFighter = [screen](float originX) {
+        screen->DrawRect(CMPUT350::Rect(originX - 5.0f, -15.0f, 10.0f, 20.0f),
+                         CMPUT350::Colors::white);
+        screen->DrawRect(CMPUT350::Rect(originX - 10.0f, -5.0f, 5.0f, 15.0f),
+                         CMPUT350::Colors::white);
+        screen->DrawRect(CMPUT350::Rect(originX + 5.0f, -5.0f, 5.0f, 15.0f),
+                         CMPUT350::Colors::white);
+        screen->DrawRect(CMPUT350::Rect(originX - 15.0f, 10.0f, 30.0f, 10.0f),
+                         CMPUT350::Colors::white);
+        screen->DrawRect(CMPUT350::Rect(originX - 20.0f, 5.0f, 5.0f, 10.0f),
+                         CMPUT350::Colors::white);
+        screen->DrawRect(CMPUT350::Rect(originX + 15.0f, 5.0f, 5.0f, 10.0f),
+                         CMPUT350::Colors::white);
         screen->DrawRect(CMPUT350::Rect(originX - 20.0f, 0.0f, 5.0f, 5.0f), CMPUT350::Colors::red);
         screen->DrawRect(CMPUT350::Rect(originX + 15.0f, 0.0f, 5.0f, 5.0f), CMPUT350::Colors::red);
-        screen->DrawRect(CMPUT350::Rect(originX - 5.0f, -20.0f, 10.0f, 5.0f), CMPUT350::Colors::red);
+        screen->DrawRect(CMPUT350::Rect(originX - 5.0f, -20.0f, 10.0f, 5.0f),
+                         CMPUT350::Colors::red);
         screen->DrawRect(CMPUT350::Rect(originX - 5.0f, 5.0f, 10.0f, 5.0f), CMPUT350::Colors::blue);
     };
 
-    if (mDoubleShip)
-    {
-        drawFighter(-kDoubleOffset);
-        drawFighter(kDoubleOffset);
-    }
-    else
-    {
-        drawFighter(0.0f);
-    }
+    drawFighter(0.0f);
 }
 
-CMPUT350::Point2D Player::GetLocation() const
-{
-    return mLoc;
-}
+CMPUT350::Point2D Player::GetLocation() const { return mLoc; }
 
-float Player::GetRotation() const
-{
-    return mRotation;
-}
+float Player::GetRotation() const { return 0.0f; }
 
 //-----------------------------------------------------------------------
 /**
- * @brief Handles the ship touching an enemy, enemy fire, or friendly fire.
+ * @brief Handles the ship touching an enemy or enemy bullet.
  *
- * An Active ship is only harmed by enemies and enemy bullets; its own bullets
- * pass through. A Captured ship can instead be destroyed by the player's own
- * fire, and is otherwise safe while it is held or dropping back into play.
+ * The ship is destroyed by enemies and enemy bullets. Its own bullets pass
+ * through it.
  * @param obj The object that overlapped the ship.
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Player::CollisionEnter(const std::shared_ptr<CMPUT350::CollisionObject>& obj)
-{
-    if (!mAlive || obj == nullptr)
-    {
-        return;
-    }
-
-    const auto bullet = std::dynamic_pointer_cast<Bullet>(obj);
-
-    if (mState == State::Captured)
-    {
-        // A captured fighter is destroyed if the player shoots it.
-        if (bullet != nullptr && bullet->IsPlayerBullet())
-        {
-            Kill();
-        }
-        return;
-    }
-
-    if (mState != State::Active)
-    {
-        // Dropping ships are invulnerable while they return to the row.
+void Player::CollisionEnter(const std::shared_ptr<CMPUT350::CollisionObject>& obj) {
+    if (!mAlive || obj == nullptr) {
         return;
     }
 
     const bool hitByEnemy = std::dynamic_pointer_cast<Enemy>(obj) != nullptr;
+    const auto bullet = std::dynamic_pointer_cast<Bullet>(obj);
     const bool hitByEnemyBullet = bullet != nullptr && !bullet->IsPlayerBullet();
 
-    if (hitByEnemy || hitByEnemyBullet)
-    {
+    if (hitByEnemy || hitByEnemyBullet) {
         Kill();
     }
 }
@@ -362,71 +231,45 @@ void Player::CollisionEnter(const std::shared_ptr<CMPUT350::CollisionObject>& ob
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Player::Kill()
-{
-    if (!mAlive)
-    {
+void Player::Kill() {
+    if (!mAlive) {
         return;
     }
 
     mAlive = false;
-    if (mNotificationManager != nullptr)
-    {
+    if (mNotificationManager != nullptr) {
         mNotificationManager->Notify(kDestroyedNotification);
     }
 }
 
-bool Player::IsAlive() const
-{
-    return mAlive;
-}
+bool Player::IsAlive() const { return mAlive; }
 
 //-----------------------------------------------------------------------
 /**
  * @brief Spawns bullets from the ship's cannons.
  *
- * A single fighter may have two shots in flight; a double fighter fires two
- * bullets per volley and may have four in flight. Expired slots are discarded
- * first, and no bullet is fired when every slot is full.
+ * A single fighter may have two shots in flight. Expired slots are discarded
+ * first, and no bullet is fired when both slots are full.
  * @param context Supplies the engine used to add the bullets.
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Player::Fire(CMPUT350::GameContext* context)
-{
-    if (context == nullptr || context->mEngineView == nullptr)
-    {
+void Player::Fire(CMPUT350::GameContext* context) {
+    if (context == nullptr || context->mEngineView == nullptr) {
         return;
     }
 
     // Forget bullets that have already left the scene.
     mBullets.erase(
-        std::remove_if(
-            mBullets.begin(),
-            mBullets.end(),
-            [](const std::weak_ptr<Bullet>& bullet) { return bullet.expired(); }
-        ),
-        mBullets.end()
-    );
+        std::remove_if(mBullets.begin(), mBullets.end(),
+                       [](const std::weak_ptr<Bullet>& bullet) { return bullet.expired(); }),
+        mBullets.end());
 
-    const std::size_t maxSlots = mDoubleShip ? 4u : 2u;
-    const std::vector<float> muzzles = mDoubleShip
-        ? std::vector<float>{-kDoubleOffset, kDoubleOffset}
-        : std::vector<float>{0.0f};
-
-    for (float offset : muzzles)
-    {
-        if (mBullets.size() >= maxSlots)
-        {
-            break;
-        }
-
-        auto bullet = std::make_shared<Bullet>(
-            mLoc + CMPUT350::Point2D(offset, -18.0f),
-            CMPUT350::Point2D(0.0f, -40.0f),
-            true,
-            context->CurrObject
-        );
+    constexpr std::size_t maxSlots = 2u;
+    if (mBullets.size() < maxSlots) {
+        auto bullet =
+            std::make_shared<Bullet>(mLoc + CMPUT350::Point2D(0.0f, -18.0f),
+                                     CMPUT350::Point2D(0.0f, -40.0f), true, context->CurrObject);
 
         mBullets.push_back(bullet);
         context->mEngineView->AddGameObject(bullet);
@@ -438,112 +281,23 @@ void Player::Fire(CMPUT350::GameContext* context)
  * @brief Updates the held-direction flags and the fire request.
  *
  * Movement keys simply set or clear a direction flag, and the shoot key sets a
- * one-shot flag that Update consumes. Notifications are ignored while the ship
- * is captured or dropping so it cannot be steered during those states.
+ * one-shot flag that Update consumes.
  * @param notification The notification name delivered by the manager.
  * @return None.
  */
 //-----------------------------------------------------------------------
-void Player::ReceiveNotification(const std::string& notification)
-{
-    if (notification == kMoveLeftDown)
-    {
+void Player::ReceiveNotification(const std::string& notification) {
+    if (notification == kMoveLeftDown) {
         mMoveLeft = true;
-    }
-    else if (notification == kMoveLeftUp)
-    {
+    } else if (notification == kMoveLeftUp) {
         mMoveLeft = false;
-    }
-    else if (notification == kMoveRightDown)
-    {
+    } else if (notification == kMoveRightDown) {
         mMoveRight = true;
-    }
-    else if (notification == kMoveRightUp)
-    {
+    } else if (notification == kMoveRightUp) {
         mMoveRight = false;
-    }
-    else if (notification == kShoot)
-    {
+    } else if (notification == kShoot) {
         mFireRequested = true;
     }
-}
-
-//-----------------------------------------------------------------------
-/**
- * @brief Starts a capture: the ship stops responding and follows the enemy.
- * @param captor The enemy taking the ship; held weakly.
- * @return None. Has no effect unless the ship is currently Active.
- */
-//-----------------------------------------------------------------------
-void Player::CaptureBy(std::weak_ptr<CMPUT350::GameObject> captor)
-{
-    if (mState != State::Active || !mAlive)
-    {
-        return;
-    }
-
-    mState = State::Captured;
-    mCaptor = captor;
-    mRotation = 0.0f;
-
-    // Drop any held input so the ship does not drift when freed.
-    mMoveLeft = false;
-    mMoveRight = false;
-    mFireRequested = false;
-}
-
-//-----------------------------------------------------------------------
-/**
- * @brief Frees the ship, which then falls back to the bottom row.
- * @param asDoubleShip true if the freed fighter should dock and become a double.
- * @return None. Has no effect unless the ship is currently Captured.
- */
-//-----------------------------------------------------------------------
-void Player::Release(bool asDoubleShip)
-{
-    if (mState != State::Captured)
-    {
-        return;
-    }
-
-    mCaptor.reset();
-    mDoubleShip = asDoubleShip;
-    mState = State::Dropping;
-    mRotation = 0.0f;
-    mDropTargetY = kHomeRowY;
-}
-
-//-----------------------------------------------------------------------
-/**
- * @brief Reports whether an enemy is currently holding the ship.
- * @return true while captured.
- */
-//-----------------------------------------------------------------------
-bool Player::IsCaptured() const
-{
-    return mState == State::Captured;
-}
-
-//-----------------------------------------------------------------------
-/**
- * @brief Reports whether the ship is under player control.
- * @return true while active.
- */
-//-----------------------------------------------------------------------
-bool Player::IsActive() const
-{
-    return mState == State::Active;
-}
-
-//-----------------------------------------------------------------------
-/**
- * @brief Reports whether the ship has been upgraded to a double fighter.
- * @return true once the captured fighter has been freed.
- */
-//-----------------------------------------------------------------------
-bool Player::IsDoubleShip() const
-{
-    return mDoubleShip;
 }
 
 //-----------------------------------------------------------------------
@@ -552,10 +306,7 @@ bool Player::IsDoubleShip() const
  * @return The current bounding box.
  */
 //-----------------------------------------------------------------------
-const CMPUT350::Rect& Player::GetBounds()
-{
-    return mBounds;
-}
+const CMPUT350::Rect& Player::GetBounds() { return mBounds; }
 
 //-----------------------------------------------------------------------
 /**
@@ -566,7 +317,4 @@ const CMPUT350::Rect& Player::GetBounds()
  * @return The list of rectangles making up the ship's hitbox.
  */
 //-----------------------------------------------------------------------
-const std::vector<CMPUT350::Shape>& Player::GetShapes()
-{
-    return mShapes;
-}
+const std::vector<CMPUT350::Shape>& Player::GetShapes() { return mShapes; }
