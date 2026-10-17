@@ -146,6 +146,58 @@ bool CircleRectOverlap(const Circle& circle, const Rect& rect, float rectRotatio
     return Point2D(closestX, closestY).Distance(local) <= circle.radius;
 }
 
+// Separating-axis tests include the corners of each rectangle, so a rectangle
+// fully contained by another is still considered a collision.
+bool RectRectOverlap(
+    const Rect& first,
+    float firstRotation,
+    const Point2D& firstLocation,
+    const Rect& second,
+    float secondRotation,
+    const Point2D& secondLocation)
+{
+    std::vector<Point2D> firstCorners = first.Points();
+    std::vector<Point2D> secondCorners = second.Points();
+    for (Point2D& corner : firstCorners) {
+        corner = corner.Rotate(firstRotation) + firstLocation;
+    }
+    for (Point2D& corner : secondCorners) {
+        corner = corner.Rotate(secondRotation) + secondLocation;
+    }
+
+    const Point2D edges[] = {
+        firstCorners[1] - firstCorners[0],
+        firstCorners[2] - firstCorners[0],
+        secondCorners[1] - secondCorners[0],
+        secondCorners[2] - secondCorners[0]
+    };
+
+    for (const Point2D& edge : edges) {
+        const Point2D axis(-edge.y, edge.x);
+        float firstMin = firstCorners[0].Dot(axis);
+        float firstMax = firstMin;
+        float secondMin = secondCorners[0].Dot(axis);
+        float secondMax = secondMin;
+
+        for (std::size_t i = 1; i < firstCorners.size(); ++i) {
+            const float projection = firstCorners[i].Dot(axis);
+            firstMin = std::min(firstMin, projection);
+            firstMax = std::max(firstMax, projection);
+        }
+        for (std::size_t i = 1; i < secondCorners.size(); ++i) {
+            const float projection = secondCorners[i].Dot(axis);
+            secondMin = std::min(secondMin, projection);
+            secondMax = std::max(secondMax, projection);
+        }
+
+        if (firstMax < secondMin || secondMax < firstMin) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 }  // namespace
 
 //-----------------------------------------------------------------------
@@ -478,34 +530,17 @@ void GameEngine::Run()
                         for (std::size_t v = 0; v < shapesIJ.size(); ++v)
                         {
                             // Rect-Rect Collision
-                            if(shapesI[u].t == ShapeType::kRect && shapesIJ[v].t == ShapeType::kRect) {
-                                // Rect 1
-                                std::vector<Point2D> rect1Points = shapesI[u].shape.rect.Points();
-                                Line rect1Line1 = Line(rect1Points[0].Rotate(objI->GetRotation()) + objI->GetLocation(), rect1Points[1].Rotate(objI->GetRotation()) + objI->GetLocation());
-                                Line rect1Line2 = Line(rect1Points[0].Rotate(objI->GetRotation()) + objI->GetLocation(), rect1Points[2].Rotate(objI->GetRotation()) + objI->GetLocation()); 
-                                Line rect1Line3 = Line(rect1Points[1].Rotate(objI->GetRotation()) + objI->GetLocation(), rect1Points[3].Rotate(objI->GetRotation()) + objI->GetLocation()); 
-                                Line rect1Line4 = Line(rect1Points[2].Rotate(objI->GetRotation()) + objI->GetLocation(), rect1Points[3].Rotate(objI->GetRotation()) + objI->GetLocation());
-                                std::vector<Line> rect1Lines = {rect1Line1, rect1Line2, rect1Line3, rect1Line4};
-                                // Rect 2
-                                std::vector<Point2D> rect2Points = shapesIJ[v].shape.rect.Points();
-                                Line rect2Line1 = Line(rect2Points[0].Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), rect2Points[1].Rotate(objIJ->GetRotation()) + objIJ->GetLocation());
-                                Line rect2Line2 = Line(rect2Points[0].Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), rect2Points[2].Rotate(objIJ->GetRotation()) + objIJ->GetLocation()); 
-                                Line rect2Line3 = Line(rect2Points[1].Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), rect2Points[3].Rotate(objIJ->GetRotation()) + objIJ->GetLocation()); 
-                                Line rect2Line4 = Line(rect2Points[2].Rotate(objIJ->GetRotation()) + objIJ->GetLocation(), rect2Points[3].Rotate(objIJ->GetRotation()) + objIJ->GetLocation());
-                                std::vector<Line> rect2Lines = {rect2Line1, rect2Line2, rect2Line3, rect2Line4};
-                                
-                                bool cross = false;
-                                Point2D crossPoint = Point2D();
-                                for (std::size_t m = 0; (m < rect1Lines.size()) && !cross; ++m) {
-                                    for (std::size_t n = 0; (n < rect2Lines.size()) && !cross; ++n) {
-                                        if (rect1Lines[m].Crosses(rect2Lines[n], crossPoint)) {
-                                            Point2D cPointI = crossPoint - objI->GetLocation();
-                                            Point2D cPointIJ = crossPoint - objIJ->GetLocation();
-                                            objI->CollisionEnter(objIJ, cPointI.RotateReverse(objI->GetRotation()));
-                                            objIJ->CollisionEnter(objI, cPointIJ.RotateReverse(objIJ->GetRotation()));
-                                            cross = true;
-                                        }
-                                    }
+                            if (shapesI[u].t == ShapeType::kRect &&
+                                shapesIJ[v].t == ShapeType::kRect) {
+                                if (RectRectOverlap(
+                                        shapesI[u].shape.rect,
+                                        objI->GetRotation(),
+                                        objI->GetLocation(),
+                                        shapesIJ[v].shape.rect,
+                                        objIJ->GetRotation(),
+                                        objIJ->GetLocation())) {
+                                    objI->CollisionEnter(objIJ);
+                                    objIJ->CollisionEnter(objI);
                                 }
                             // Circle-Circle Collision    
                             } else if (shapesI[u].t == ShapeType::kCircle && shapesIJ[v].t == ShapeType::kCircle) {

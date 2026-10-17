@@ -82,6 +82,10 @@ private:
     void StartNewGame();
     /// @brief Starts a replay of the recorded game.
     void BeginReplay(CMPUT350::GameContext* context);
+    /// @brief Installs every keyboard code as a temporary setup-screen input.
+    void InstallKeySetupBindings();
+    /// @brief Handles a physical key while the keyboard setup screen is open.
+    void HandleKeySetupKey(unsigned int key);
 
     // ---- Spawning and cleanup -----------------------------------------
     /// @brief Spawns one wave of 8 ships that fly into their formation row.
@@ -102,12 +106,6 @@ private:
     void TryRespawn(CMPUT350::GameContext* context);
     /// @brief Claims the score for the most recently killed enemy.
     void ClaimEnemyScore();
-
-    // ---- UI ------------------------------------------------------------
-    void RenderTitle(CMPUT350::GameContext* context);
-    void RenderHud(CMPUT350::GameContext* context);
-    void RenderKeySetup(CMPUT350::GameContext* context);
-    void RenderGameOver(CMPUT350::GameContext* context);
 
     bool mAlive;
     unsigned int mWidth;
@@ -137,6 +135,8 @@ private:
     std::array<unsigned int, static_cast<std::size_t>(BindAction::Count)> mBindings;
     int mSetupSelection;   ///< Highlighted action in the key setup screen.
     bool mWaitingForKey;   ///< True while the next key press becomes a binding.
+    bool mCustomBindings;  ///< True after any player key has been reassigned.
+    std::string mSetupStatus; ///< Keyboard setup feedback shown on screen.
 
     bool mReplaying;       ///< True while a recorded game is being replayed.
     bool mReplayDone;      ///< True once the current recording has been shown.

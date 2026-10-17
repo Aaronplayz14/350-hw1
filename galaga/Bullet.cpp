@@ -139,7 +139,7 @@ void Bullet::RenderBackground(CMPUT350::GameContext* context)
  * Both endpoints are expressed relative to the bullet's current location,
  * because the engine applies that location as the drawing offset.
  * @param context Supplies the drawing context.
- * @return None. Colour is yellow for player shots, cyan for enemy shots.
+ * @return None. Colour is yellow for player shots, red for enemy shots.
  */
 //-----------------------------------------------------------------------
 void Bullet::RenderForeground(CMPUT350::GameContext* context)
@@ -165,11 +165,16 @@ void Bullet::RenderForeground(CMPUT350::GameContext* context)
     }
     else if (!mDestroyed)
     {
-        // The current position is the local origin, so shift the previous world
-        // position by it to get the streak's other end.
         const CMPUT350::Point2D previousLocal = mPreviousLocation - mLocation;
-
-        context->ScreenContext->DrawLine(previousLocal, CMPUT350::Point2D(0.0f, 0.0f), 6.0f, color);
+        if (mPlayer)
+        {
+            context->ScreenContext->DrawLine(previousLocal, CMPUT350::Point2D(0.0f, 0.0f), 6.0f, color);
+        }
+        else
+        {
+            const CMPUT350::Point2D streakEnd = previousLocal * 4.0f;
+            context->ScreenContext->DrawLine(CMPUT350::Point2D(0.0f, 0.0f), streakEnd, 5.0f, color);
+        }
     }
 }
 
@@ -293,6 +298,7 @@ void Bullet::CollisionEnter(
     {
         return;
     }
+    if (!mHasCollisionPoint || collisionPoint.y > mCollisionPoint.y)
     {
         mCollisionPoint = collisionPoint;
         mHasCollisionPoint = true;

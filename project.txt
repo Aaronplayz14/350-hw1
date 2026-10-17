@@ -1,29 +1,79 @@
 CMPUT 350 Project 1b - Galaga Prototype
 
 Overview
-This project builds on the Part 1a engine with transformed drawing contexts, Bezier paths, shape-based collision checks, keyboard notifications, and a Galaga-style player/enemy prototype.
+This project builds on the Part 1a engine with transformed drawing contexts,
+Bezier paths, shape-based collision checks, registered keyboard notifications,
+and a Galaga-style player/enemy prototype.
 
 Implemented
-- The engine updates, collides, and renders game objects each frame. Bounding rectangles are checked before component shapes.
-- Bezier paths support multiple cubic segments. Enemy path motion uses sampled arc lengths to approximate constant-speed travel.
-- The player registers for movement/shoot notifications (the Galaga manager installs the key bindings) and reports its own destruction. Movement is clamped to the playfield.
-- Bullets use swept line shapes for collision detection, remember their weak parent, and render a collision marker when destroyed.
-- Three enemy variants have distinct visuals, attack paths, health, and point values. Enemies enter formation along Bezier paths and hover deterministically.
-- Enemy destruction sends an EnemyDestroyed notification. Galaga awards the killed enemy's points (doubled when it was destroyed out of formation) and tracks the surviving count.
+- The engine updates, collides, and renders game objects each frame. Bounding
+  rectangles are checked before component shapes, and object pairs are visited
+  once per collision pass.
+- Collision shapes are defined in local coordinates. The engine supports lines,
+  circles, and rectangles; it returns line contact points in local coordinates,
+  including for rotated objects. Rectangle/rectangle collision uses a
+  separating-axis test so fully contained rectangles are detected.
+- Bezier paths support multiple cubic segments. Enemy movement uses sampled arc
+  lengths to approximate constant-speed travel.
+- The player registers for movement and shooting notifications. Galaga owns the
+  key bindings, and player movement is clamped to the playfield.
+- Bullets use swept line shapes for collision detection, remember their weak
+  parent, select the lowest-y impact point when several contacts are reported,
+  and render a collision marker when destroyed.
+- Three enemy variants have distinct visuals, attack paths, health, and point
+  values. Five waves of eight enemies enter along Bezier paths. Gameplay waits
+  until all living enemies have reached formation before launching attacks.
+- Enemy attacks are selected deterministically in groups. Enemies fire at the
+  player, return to formation after an attack, and award more points when
+  destroyed outside formation.
+- Galaga tracks score, lives, levels, coins, and game state. It waits for the
+  field to be safe before respawning, and clears remaining playfield objects
+  when returning to the title screen.
 
-Current Game Flow and Outstanding Work
-The program entry point adds a single Galaga game-manager object and lets it run. Galaga installs the player key bindings, registers for the player/enemy death notifications, spawns and respawns the player, tracks score and lives, and moves to game over when no lives remain. The remaining Galaga work is to spawn the five waves of eight ships (with their entry Bezier paths), schedule the enemies' attacks during gameplay, and draw the title, level, score, lives, and game-over text. The enemy Attack methods are implemented but are not yet scheduled or called by the manager, so no enemies currently appear. These are known gaps rather than implemented behavior.
-
-Design Notes
-- Collision shapes are defined in each object's local coordinates; the engine applies location and rotation during collision checks and drawing.
-- Bullets keep a weak reference to their parent so they can be removed when the firing object is no longer alive.
-- Enemy paths are sampled by distance and interpolated between samples to reduce Bezier speed changes caused by uneven control-point spacing.
-
-Team Contributions
-Based on the repository commit history, Travis Lee contributed Bezier support, math rotation utilities, and rotation-aware collision processing. Aaron Chiu contributed player/bullet/enemy integration, notification and drawing compatibility changes, and the recent enemy variants and fixes. Both team members should review this summary and adjust it if the actual work split differed.
+Game State Flow
+The title screen waits for coin input (5) and a start input (1). Startup displays
+the level and spawns the player. Waves launches five groups of eight ships and
+does not transition to gameplay until the entire formation has arrived.
+Gameplay schedules deterministic enemy attack groups, tracks kills and score,
+and waits for attacking enemies to return before respawning a lost player.
+After the final life is lost, Game Over is shown for several seconds; the game
+then cleans up the playfield and returns to the title screen.
 
 Extra Credit
-The NotificationManager contains recording and replay primitives, but the current Galaga program does not provide replay controls or integrate playback into a coin/start screen. Keyboard remapping and ship capture are not implemented.
+- Keyboard setup: press F1 on the title screen, select Move Left, Move Right,
+  or Fire with 1-3, then press a key to assign it. Escape cancels an assignment
+  or exits the setup screen. Key changes are routed through notifications, so
+  the Player implementation does not depend on a particular key.
+- Replay: the notification manager records notifications with frame offsets.
+  While idle at the title screen, the game automatically replays recorded player
+  input as an attract-mode demo. Playback replays inputs and lets normal game
+  simulation regenerate outcomes, avoiding duplicate score/death notifications.
+  Inserting a coin interrupts the demo.
+- Ship capture: some deterministic attack groups send an armored enemy on a
+  capture run. The captured ship spins above its captor, can be destroyed by
+  friendly fire, and drops back as a double ship if the captor is destroyed.
+- Vector2D: Vector2D is an alias for Point2D and is used for values representing
+  direction or displacement, including bullet heading and Bezier slope.
+
+Design Notes
+- Bullets keep weak parent references, so a shot is removed when its firing
+  object dies.
+- Enemy path motion uses distance sampling to reduce speed changes from
+  unevenly spaced Bezier control points.
+- Drawing and collision geometry are local to each object; the engine applies
+  the object's position and rotation.
+
+Team Contributions
+Based on repository history, Travis Lee contributed Bezier support, math
+rotation utilities, and rotation-aware collision processing. Aaron Chiu
+contributed player, bullet, and enemy integration, notification and drawing
+compatibility changes, enemy variants, gameplay behavior, and fixes. Both team
+members should review and correct this summary if the actual work split
+differed.
 
 AI Use
-AI assistance was used for portions of the engine-loop and player-movement code, debugging and compilation fixes, enemy implementation, documentation comments, and code review. The team reviewed and remains responsible for the final code.
+AI assistance was used for portions of the engine loop and player movement,
+debugging and compilation fixes, enemy implementation, keyboard setup and
+notification replay, capture scheduling, collision and respawn fixes,
+documentation comments, and code review. The team reviewed and remains
+responsible for the final code.

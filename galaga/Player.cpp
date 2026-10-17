@@ -28,10 +28,9 @@ constexpr float kCaptureSpin = 0.15f;
 /**
  * @brief Creates the player ship.
  *
- * The hitbox is a 40x40 box centred on the location, built from two local
- * rectangles (a wide base and a narrow nose) so the collision shape roughly
- * follows the drawn ship. Rotation is normally zero, so the box never needs to
- * be re-derived, and the ship starts under player control as a single fighter.
+ * The hitbox is built from two local rectangles (a wide base and a narrow
+ * nose) so the collision shape roughly follows the drawn ship. The ship starts
+ * under player control as a single fighter.
  * @param loc Centre of the ship in world coordinates.
  */
 //-----------------------------------------------------------------------
@@ -49,10 +48,7 @@ Player::Player(CMPUT350::Point2D loc)
       mRotation(0.0f),
       mDropTargetY(kHomeRowY)
 {
-    // These hitboxes are local to mLoc; the engine adds GetLocation() when it
-    // tests them, so the world position must not be baked in here.
-    mShapes.push_back(CMPUT350::Shape(CMPUT350::Rect(-kHalfWidth, -kHalfWidth, 2.0f * kHalfWidth, 2.0f * kHalfWidth)));
-    mShapes.push_back(CMPUT350::Shape(CMPUT350::Rect(-5.0f, -25.0f, 10.0f, 15.0f)));
+    RefreshBounds();
 }
 
 //-----------------------------------------------------------------------
@@ -90,22 +86,69 @@ void Player::Initialize(CMPUT350::GameContext* context)
 
 //-----------------------------------------------------------------------
 /**
- * @brief Recomputes the world-space bounding box from the current location.
+ * @brief Rebuilds local hitboxes and their rotated world-space bounds.
  *
- * The box is recentred on the ship because the ship only ever moves by
- * changing its location; the local hitbox shapes are unaffected.
+ * A double ship has one hitbox per fighter. Each local rectangle is transformed
+ * by the current rotation before the broad-phase bounds are calculated, so the
+ * engine cannot reject a collision that the narrow phase would accept.
  * @return None.
  */
 //-----------------------------------------------------------------------
 void Player::RefreshBounds()
 {
-    const float halfWidth = mDoubleShip ? kDoubleHalfWidth : kHalfWidth;
+    mShapes.clear();
+    const auto addFighterShapes = [this](float offset)
+    {
+        mShapes.push_back(CMPUT350::Shape(CMPUT350::Rect(
+            offset - kHalfWidth,
+            -kHalfWidth,
+            2.0f * kHalfWidth,
+            2.0f * kHalfWidth
+        )));
+        mShapes.push_back(CMPUT350::Shape(CMPUT350::Rect(
+            offset - 5.0f,
+            -25.0f,
+            10.0f,
+            15.0f
+        )));
+    };
 
-    mBounds = CMPUT350::Rect(
-        mLoc - halfWidth,
-        2.0f * kHalfWidth,
-        2.0f * kHalfWidth
-    );
+    if (mDoubleShip)
+    {
+        addFighterShapes(-kDoubleOffset);
+        addFighterShapes(kDoubleOffset);
+    }
+    else
+    {
+        addFighterShapes(0.0f);
+    }
+
+    bool firstPoint = true;
+    CMPUT350::Point2D minimum;
+    CMPUT350::Point2D maximum;
+    for (const auto& shape : mShapes)
+    {
+        for (const auto& localPoint : shape.shape.rect.Points())
+        {
+            const CMPUT350::Point2D worldPoint =
+                localPoint.Rotate(mRotation) + mLoc;
+            if (firstPoint)
+            {
+                minimum = worldPoint;
+                maximum = worldPoint;
+                firstPoint = false;
+            }
+            else
+            {
+                minimum.x = std::min(minimum.x, worldPoint.x);
+                minimum.y = std::min(minimum.y, worldPoint.y);
+                maximum.x = std::max(maximum.x, worldPoint.x);
+                maximum.y = std::max(maximum.y, worldPoint.y);
+            }
+        }
+    }
+
+    mBounds = CMPUT350::Rect(minimum, maximum);
 }
 
 //-----------------------------------------------------------------------
