@@ -122,9 +122,31 @@ void Galaga::Update(CMPUT350::GameContext* context)
 
             // If an enemy exists AND if the player exists AND if interval since last attack has been reached: Activate attack
             if (mEnemyCount > 0 && mPlayerAlive == true && context->currentFrame - mLastAttackElapsed >= attackFreq) {
-
-                // TODO: Attack with set of enemies (semi-randomized if possible)
-
+                // Pick a random in-formation enemy and have it attack the player
+                if (mEngine != nullptr) {
+                    std::vector<std::shared_ptr<Enemy>> candidates;
+                    candidates.clear();
+                    for (auto& object : *mEngine) {
+                        auto enemy = std::dynamic_pointer_cast<Enemy>(object);
+                        if (enemy != nullptr && enemy->IsAlive() && enemy->IsInFormation()) {
+                            candidates.push_back(enemy);
+                        }
+                    }
+                    if (!candidates.empty()) {
+                        int idx = context->currentFrame % static_cast<int>(candidates.size());
+                        CMPUT350::Point2D target(768.0f / 2.0f, 900.0f);
+                        if (mPlayerAlive) {
+                            for (auto& object : *mEngine) {
+                                auto player = std::dynamic_pointer_cast<Player>(object);
+                                if (player != nullptr && player->IsAlive()) {
+                                    target = player->GetLocation();
+                                    break;
+                                }
+                            }
+                        }
+                        candidates[idx]->Attack(context, target);
+                    }
+                }
                 // Set frame of last attack
                 mLastAttackElapsed = context->currentFrame;
             }
