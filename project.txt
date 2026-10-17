@@ -49,9 +49,6 @@ Extra Credit
   input as an attract-mode demo. Playback replays inputs and lets normal game
   simulation regenerate outcomes, avoiding duplicate score/death notifications.
   Inserting a coin interrupts the demo.
-- Ship capture: some deterministic attack groups send an armored enemy on a
-  capture run. The captured ship spins above its captor, can be destroyed by
-  friendly fire, and drops back as a double ship if the captor is destroyed.
 - Vector2D: Vector2D is an alias for Point2D and is used for values representing
   direction or displacement, including bullet heading and Bezier slope.
 
