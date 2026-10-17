@@ -11,6 +11,8 @@ namespace CMPUT350 {
     class NotificationManager;
 }
 
+class Player;
+
 //-----------------------------------------------------------------------
 /**
  * @brief Base class for every Galaga enemy.
@@ -53,6 +55,22 @@ public:
 
     /// @brief Starts an attack against a target; false if one cannot begin.
     virtual bool Attack(CMPUT350::GameContext* context, const CMPUT350::Point2D& target) = 0;
+
+    /// @brief Marks the next attack as a capture run (extra credit).
+    ///
+    /// Only an enemy that supports capturing (the armored type) makes use of
+    /// this; it flags the enemy so that when the attack brings it within range
+    /// of the player it grabs the ship instead of ramming it.
+    virtual void BeginCapture();
+
+    /// @brief True while the enemy is trying to capture the player.
+    bool IsCaptureAttempt() const;
+
+    /// @brief True while the enemy is attempting or holding a capture.
+    ///
+    /// Used to suppress the collision that would normally destroy both the
+    /// enemy and the player when the two touch.
+    bool IsCapturing() const;
 
     // GameObject Functions
     void Initialize(CMPUT350::GameContext* context) override;
@@ -133,6 +151,19 @@ protected:
     );
 
 private:
+    /**
+     * @brief Grabs the player ship if it is close enough (extra credit).
+     *
+     * Scans the engine for the active player and, when it lies within the
+     * capture radius, tells it to follow this enemy instead of the controls.
+     * Called only while a capture run is in progress and no ship is held yet, so
+     * the search stops as soon as one ship has been taken.
+     *
+     * @param context Supplies the engine used to find the player.
+     * @return None. The captured ship is remembered as a weak reference.
+     */
+    void TryCapture(CMPUT350::GameContext* context);
+
     /// @brief Why a trajectory is being followed, which decides what happens on arrival.
     enum class TrajectoryPurpose {
         EnterFormation,   // Flying in from off-screen.
@@ -179,6 +210,12 @@ private:
     TrajectoryPurpose mTrajectoryPurpose;
     CMPUT350::NotificationManager* mNotificationManager; // Set during Initialize.
     std::weak_ptr<CMPUT350::GameObject> mSelf; // Parent reference for spawned bullets.
+
+    // Ship-capture state (extra credit). mCaptureAttempt is set by the manager
+    // before an attack; once a ship has actually been grabbed it is recorded in
+    // mCapturedPlayer and the attempt flag is cleared.
+    bool mCaptureAttempt;
+    std::weak_ptr<Player> mCapturedPlayer;
 };
 
 //-----------------------------------------------------------------------

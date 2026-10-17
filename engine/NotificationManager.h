@@ -2,6 +2,7 @@
 #define NOTIFICATION_MANAGER_H
 
 #include <memory>
+#include <functional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -50,6 +51,15 @@ public:
 
     /// @brief Begin replaying the recorded notifications; false if none exist.
     bool StartReplay();
+
+    /// @brief Begin replaying only the recorded events a filter accepts.
+    ///
+    /// Filtering lets a caller replay just the inputs of a recording while the
+    /// simulated game regenerates the outcomes; replaying every recorded event
+    /// instead would deliver outcomes a second time and double-count them.
+    /// @param filter Returns true for each event that should be replayed.
+    /// @return true if at least one event passed the filter, false otherwise.
+    bool StartReplay(const std::function<bool(const std::string&)>& filter);
     /// @brief Stop any active replay and discard its playback buffer.
     void StopReplay();
     /// @brief Whether a replay is currently in progress.
@@ -68,7 +78,7 @@ private:
     int mRecordingStartFrame = 0;
     int mPlaybackStartFrame = 0;
     std::size_t mPlaybackIndex = 0;
-    bool mIsRecording = true;
+    bool mIsRecording = false;
     bool mIsReplaying = false;
 };
 

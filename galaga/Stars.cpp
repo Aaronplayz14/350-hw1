@@ -64,3 +64,29 @@ void Stars::RenderBackground(CMPUT350::GameContext* context)
             star.y -= mBounds.height;
     }
 }
+
+//-----------------------------------------------------------------------
+/**
+ * @brief The starfield has no origin of its own.
+ *
+ * Stars are stored in absolute window coordinates and are drawn as a
+ * background, so the engine must not offset them. Returning the origin keeps
+ * the drawing transform an identity for this object.
+ * @return The origin.
+ */
+//-----------------------------------------------------------------------
+CMPUT350::Point2D Stars::GetLocation() const
+{
+    return CMPUT350::Point2D(0.0f, 0.0f);
+}
+
+//-----------------------------------------------------------------------
+/**
+ * @brief The starfield is never rotated.
+ * @return 0 radians.
+ */
+//-----------------------------------------------------------------------
+float Stars::GetRotation() const
+{
+    return 0.0f;
+}

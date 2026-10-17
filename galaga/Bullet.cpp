@@ -14,7 +14,7 @@
  * @param player true for shots fired by the player, false for enemy shots.
  */
 //-----------------------------------------------------------------------
-Bullet::Bullet(CMPUT350::Point2D location, CMPUT350::Point2D heading, bool player,
+Bullet::Bullet(CMPUT350::Point2D location, CMPUT350::Vector2D heading, bool player,
     std::weak_ptr<CMPUT350::GameObject> parent):
     mLocation(location), mPreviousLocation(location), mHeading(heading), mPlayer(player), mParent(parent), mAlive(true), mDestroyed(false), mHasCollisionPoint(false), mCollisionPoint(0.0f, 0.0f), mBounds(location, location)
 {
@@ -139,7 +139,7 @@ void Bullet::RenderBackground(CMPUT350::GameContext* context)
  * Both endpoints are expressed relative to the bullet's current location,
  * because the engine applies that location as the drawing offset.
  * @param context Supplies the drawing context.
- * @return None. Colour is yellow for player shots, cyan for enemy shots.
+ * @return None. Colour is yellow for player shots, red for enemy shots.
  */
 //-----------------------------------------------------------------------
 void Bullet::RenderForeground(CMPUT350::GameContext* context)
@@ -153,23 +153,28 @@ void Bullet::RenderForeground(CMPUT350::GameContext* context)
         return;
     }
 
-    const CMPUT350::RGBColor color = mPlayer ? CMPUT350::Colors::yellow : CMPUT350::Colors::cyan;
+    const CMPUT350::RGBColor color = mPlayer ? CMPUT350::Colors::yellow : CMPUT350::Colors::red;
     if (mDestroyed && mHasCollisionPoint)
     {
         // CollisionPoint is local to this bullet.
         context->ScreenContext->DrawCircle(
             mCollisionPoint,
-            4.0f,
+            8.0f,
             color
         );
     }
     else if (!mDestroyed)
     {
-        // The current position is the local origin, so shift the previous world
-        // position by it to get the streak's other end.
         const CMPUT350::Point2D previousLocal = mPreviousLocation - mLocation;
-
-        context->ScreenContext->DrawLine(previousLocal, CMPUT350::Point2D(0.0f, 0.0f), 3.0f, color);
+        if (mPlayer)
+        {
+            context->ScreenContext->DrawLine(previousLocal, CMPUT350::Point2D(0.0f, 0.0f), 6.0f, color);
+        }
+        else
+        {
+            const CMPUT350::Point2D streakEnd = previousLocal * 4.0f;
+            context->ScreenContext->DrawLine(CMPUT350::Point2D(0.0f, 0.0f), streakEnd, 5.0f, color);
+        }
     }
 }
 
@@ -225,9 +230,13 @@ void Bullet::CollisionEnter(const std::shared_ptr<CMPUT350::CollisionObject>& ob
     const auto enemy = std::dynamic_pointer_cast<Enemy>(obj);
     const auto player = std::dynamic_pointer_cast<Player>(obj);
 
+    // Player fire hits enemies, and also a friendly ship that has been
+    // captured (shooting your own stolen fighter destroys it). Enemy fire only
+    // hits the player.
     const bool validTarget =
         (mPlayer && enemy != nullptr) ||
-        (!mPlayer && player != nullptr);
+        (!mPlayer && player != nullptr) ||
+        (mPlayer && player != nullptr && player->IsCaptured());
 
     if (!validTarget)
     {
@@ -277,17 +286,19 @@ void Bullet::CollisionEnter(
     const auto enemy = std::dynamic_pointer_cast<Enemy>(obj);
     const auto player = std::dynamic_pointer_cast<Player>(obj);
 
+    // Player fire hits enemies, and also a friendly ship that has been
+    // captured (shooting your own stolen fighter destroys it). Enemy fire only
+    // hits the player.
     const bool validTarget =
         (mPlayer && enemy != nullptr) ||
-        (!mPlayer && player != nullptr);
+        (!mPlayer && player != nullptr) ||
+        (mPlayer && player != nullptr && player->IsCaptured());
 
     if (!validTarget)
     {
         return;
     }
-
-    if (!mHasCollisionPoint ||
-        collisionPoint.y > mCollisionPoint.y)
+    if (!mHasCollisionPoint || collisionPoint.y > mCollisionPoint.y)
     {
         mCollisionPoint = collisionPoint;
         mHasCollisionPoint = true;

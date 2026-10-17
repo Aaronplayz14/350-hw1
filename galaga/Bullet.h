@@ -31,7 +31,7 @@ public:
      * @param player true for a player bullet, false for an enemy bullet.
      * @param parent The object that fired this bullet, held weakly.
      */
-    Bullet(CMPUT350::Point2D location, CMPUT350::Point2D heading, bool player, std::weak_ptr<CMPUT350::GameObject> parent);
+    Bullet(CMPUT350::Point2D location, CMPUT350::Vector2D heading, bool player, std::weak_ptr<CMPUT350::GameObject> parent);
 
     /// @brief True if this bullet was fired by the player.
     bool IsPlayerBullet() const;
@@ -57,7 +57,7 @@ public:
 private:
     CMPUT350::Point2D mLocation;         // Current world position.
     CMPUT350::Point2D mPreviousLocation; // Position at the start of this frame.
-    CMPUT350::Point2D mHeading;          // Per-frame displacement.
+    CMPUT350::Vector2D mHeading;         // Per-frame displacement (velocity).
 
     bool mPlayer;                        // Which side fired this bullet.
     std::weak_ptr<CMPUT350::GameObject> mParent; // The firing object.

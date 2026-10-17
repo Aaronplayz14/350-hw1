@@ -172,6 +172,14 @@ struct Point2D {
     }
 };
 
+/// @brief A direction/displacement, as opposed to a location.
+///
+/// Vector2D is a pure alias for Point2D: the two carry identical arithmetic, but
+/// using this name at a parameter or member where the value represents motion
+/// (a heading, a velocity, a tangent) documents the intent. Places that denote a
+/// position keep using Point2D.
+using Vector2D = Point2D;
+
 static std::ostream &operator<<(std::ostream &os, const Point2D &p) {
     return os << "(" << p.x << ", " << p.y << ")";
 }

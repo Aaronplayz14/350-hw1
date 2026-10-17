@@ -12,6 +12,10 @@ namespace {
 constexpr float kEnemyRadius = 15.0f;
 constexpr float kEntrySpeed = 3.0f;
 constexpr int kSamplesPerBezierSegment = 40;
+// How close the player must be for a capture run to grab it. This is slightly
+// larger than the combined collision radii so the grab happens before the two
+// objects are registered as colliding.
+constexpr float kCaptureRange = 42.0f;
 
 // The Bezier implementation requires 3*n + 1 control points.
 bool IsValidBezierPath(const std::vector<CMPUT350::Point2D>& points)
@@ -59,7 +63,8 @@ Enemy::Enemy(
     mMovementSpeed(kEntrySpeed),
     mTrajectoryEnd(formationLocation),
     mTrajectoryPurpose(TrajectoryPurpose::EnterFormation),
-    mNotificationManager(nullptr)
+    mNotificationManager(nullptr),
+    mCaptureAttempt(false)
 {
     mShapes.push_back(CMPUT350::Shape(CMPUT350::Circle(0.0f, 0.0f, kEnemyRadius)));
     if (IsValidBezierPath(entryPath))
@@ -133,6 +138,14 @@ void Enemy::Update(CMPUT350::GameContext* context)
         mRotation = 0.0f;
     }
 
+    // A capture run takes the player as soon as it comes within range. Doing
+    // this in Update means the ship is already flagged as captured before the
+    // engine resolves collisions, so the ram check below cannot kill it.
+    if (mCaptureAttempt && mCapturedPlayer.expired())
+    {
+        TryCapture(context);
+    }
+
     mBounds = CMPUT350::Rect(mLoc - kEnemyRadius, 2.0f * kEnemyRadius, 2.0f * kEnemyRadius);
 }
 
@@ -177,6 +190,13 @@ void Enemy::CollisionEnter(const std::shared_ptr<CMPUT350::CollisionObject>& obj
     }
     if (std::dynamic_pointer_cast<Player>(obj) != nullptr)
     {
+        // While running a capture (or holding a ship) the enemy must not ram
+        // the player: the grab is handled in Update, and once the ship is
+        // captured it is this enemy's prize rather than a collision.
+        if (IsCapturing())
+        {
+            return;
+        }
         Kill();
         return;
     }
@@ -206,6 +226,15 @@ void Enemy::Kill()
 
     mWasInFormationWhenKilled = IsInFormation();
     mAlive = false;
+
+    // If this enemy was holding the player's ship, the capture is broken and
+    // the freed fighter returns as a double ship (extra credit).
+    if (auto player = mCapturedPlayer.lock())
+    {
+        player->Release(true);
+    }
+    mCapturedPlayer.reset();
+
     if (mNotificationManager != nullptr)
     {
         mNotificationManager->Notify(kDestroyedNotification);
@@ -281,6 +310,85 @@ int Enemy::TakeScore()
     }
 
     return value;
+}
+
+//-----------------------------------------------------------------------
+/**
+ * @brief Flags the next attack as a capture run (extra credit).
+ *
+ * The manager calls this immediately before Attack so the enemy knows to aim at
+ * the player and to grab the ship on contact rather than ramming it.
+ * @return None.
+ */
+//-----------------------------------------------------------------------
+void Enemy::BeginCapture()
+{
+    mCaptureAttempt = true;
+}
+
+//-----------------------------------------------------------------------
+/**
+ * @brief Reports whether this enemy is on a capture run or holding a ship.
+ * @return true if a capture has been requested or a ship is being held.
+ */
+//-----------------------------------------------------------------------
+bool Enemy::IsCaptureAttempt() const
+{
+    return mCaptureAttempt;
+}
+
+//-----------------------------------------------------------------------
+/**
+ * @brief Reports whether the capture logic should override normal ramming.
+ * @return true while attempting to capture or already holding a ship.
+ */
+//-----------------------------------------------------------------------
+bool Enemy::IsCapturing() const
+{
+    return mCaptureAttempt || !mCapturedPlayer.expired();
+}
+
+//-----------------------------------------------------------------------
+/**
+ * @brief Grabs the player's ship when it is close enough (extra credit).
+ *
+ * The engine is searched for the active player (the ship can only be captured
+ * while under player control). If the ship is within the capture radius it is
+ * told to follow this enemy, and the enemy remembers it weakly so that freeing
+ * or destroying it later can be handled cleanly. The search stops after the
+ * first successful grab.
+ * @param context Supplies the engine used to find the player.
+ * @return None.
+ */
+//-----------------------------------------------------------------------
+void Enemy::TryCapture(CMPUT350::GameContext* context)
+{
+    if (context == nullptr || context->mEngineView == nullptr)
+    {
+        return;
+    }
+
+    for (auto it = context->mEngineView->begin();
+         it != context->mEngineView->end();
+         ++it)
+    {
+        auto player = std::dynamic_pointer_cast<Player>(*it);
+
+        if (player == nullptr || !player->IsAlive() || !player->IsActive())
+        {
+            continue;
+        }
+
+        if (player->GetLocation().Distance(mLoc) <= kCaptureRange)
+        {
+            player->CaptureBy(mSelf);
+            mCapturedPlayer = player;
+
+            // The grab succeeded, so no further capture attempts are needed.
+            mCaptureAttempt = false;
+            break;
+        }
+    }
 }
 //-----------------------------------------------------------------------
 /**
@@ -563,7 +671,7 @@ void Enemy::FireAtTarget(
         return;
     }
 
-    CMPUT350::Point2D direction = target - mLoc;
+    CMPUT350::Vector2D direction = target - mLoc;
 
     if (direction.Distance(CMPUT350::Point2D(0.0f, 0.0f)) <= 0.001f)
     {
@@ -777,7 +885,13 @@ bool EnemyArmored::Attack(
 )
 {
     const CMPUT350::Point2D start = GetLocation();
-    const CMPUT350::Point2D end = target + CMPUT350::Point2D(-100.0f, 150.0f);
+    const bool capturing = IsCaptureAttempt();
+
+    // A capture run ends right on the player so the grab range is reached; a
+    // normal charge instead overshoots below and to the side of the target.
+    const CMPUT350::Point2D end = capturing
+        ? target
+        : target + CMPUT350::Point2D(-100.0f, 150.0f);
     const std::vector<CMPUT350::Point2D> path = {
         start,
         start + CMPUT350::Point2D(-120.0f, 120.0f),
@@ -789,10 +903,15 @@ bool EnemyArmored::Attack(
     {
         return false;
     }
-    FireAtTarget(context, target, 5.0f);
+
+    // A capturing enemy holds its fire so it cannot destroy the ship it is
+    // trying to steal.
+    if (!capturing)
+    {
+        FireAtTarget(context, target, 5.0f);
+    }
     return true;
 }
-
 //-----------------------------------------------------------------------
 /**
  * @brief Draws the armored enemy as a red square in a white frame.

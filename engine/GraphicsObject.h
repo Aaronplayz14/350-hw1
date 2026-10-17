@@ -15,9 +15,9 @@ public:
     /// @brief Draws in front of other objects; default draws nothing.
     virtual void RenderForeground(GameContext *context);
     // Center of object with respect to rotation
-	virtual Point2D GetLocation() const;
+	virtual Point2D GetLocation() const = 0;
 	// Return the rotation of the object in radians
-	virtual float GetRotation() const;
+	virtual float GetRotation() const = 0;
 };
 
 }  // namespace CMPUT350

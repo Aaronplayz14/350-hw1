@@ -31,12 +31,12 @@ public:
 	/// @brief Point on the curve at parameter t, where 0 <= t <= segments.
 	Point2D GetPoint(float t) const;
 	/// @brief Tangent (un-normalised derivative) at parameter t.
-	Point2D GetSlope(float t) const;
+	Vector2D GetSlope(float t) const;
 
 	/// @brief Static point lookup; does not require a Bezier instance.
 	static Point2D GetPoint(const std::vector<Point2D> &pts, float t);
 	/// @brief Static tangent lookup; does not require a Bezier instance.
-	static Point2D GetSlope(const std::vector<Point2D> &pts, float t);
+	static Vector2D GetSlope(const std::vector<Point2D> &pts, float t);
 
 private:
     std::vector<Point2D> bezPts; // The control points.

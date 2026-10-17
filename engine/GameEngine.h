@@ -35,6 +35,9 @@ public:
     /// @brief Registers a notification name to send when a key is released.
     void InstallKeyUpNotification(int key, const std::string& notification) override;
 
+    /// @brief Removes every registered key press/release binding.
+    void ClearKeyNotifications() override;
+
     /// @brief Const iterator to the first live object.
     const_iterator begin() const override;
     /// @brief Const iterator one past the last live object.
